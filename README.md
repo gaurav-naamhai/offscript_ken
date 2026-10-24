@@ -15,7 +15,38 @@ npm install
 npm run dev
 ```
 
-`npm run build` creates the production site in `dist`. `npm run lint` runs the linter.
+`npm run build` creates the production site in `dist`. `npm run lint` runs the linter. `npm test` runs the unit and integration test suite.
+
+## Email Reminder Feature
+
+A standalone, backend-ready transactional email reminder module powered by **Brevo's official Transactional Email API** (`POST /v3/smtp/email`).
+
+- `src/reminders/`: Domain models, Brevo API client, in-memory store adapter, transactional email template generators, and reminder service.
+- Provides methods for event registration confirmation, batch upcoming-event reminder dispatch (`sendUpcomingReminders`), event updates, and cancellation notices.
+- Prevents duplicate confirmation and reminder emails for the same registration.
+- Safe error handling: transient retry policy (5xx/429), secret redaction, and protection for cancelled/expired events or invalid attendee emails.
+- *Note:* Operates as an isolated backend module with an in-memory repository. It is not yet connected to a persistent database, live application UI, or automatic background cron daemon.
+
+### Environment Variables
+
+Configure these variables in your environment or `.env` file (see `.env.example`):
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `BREVO_API_KEY` | Official Brevo API v3 key (`xkeysib-...`) | Required in live mode |
+| `BREVO_SENDER_EMAIL` | Verified sender email address | `notifications@gather.app` |
+| `BREVO_SENDER_NAME` | Sender display name | `Gather Events` |
+| `BREVO_MOCK_MODE` | Set to `true` (or `1`) to mock email sends locally without calling Brevo | `false` (defaults to `true` during test runs) |
+
+### Scheduling & Deployment
+
+- **Scheduled Reminders Entrypoint**: Call `runReminderScheduler({ service })` or `startReminderInterval(service, 60000)` in `src/reminders/scheduler.ts`.
+- **Recommended Schedule**: Run `runReminderScheduler` every 15 to 60 minutes via serverless cron (e.g. AWS EventBridge, Vercel Cron, GitHub Actions) or a background worker.
+- **Production Setup**:
+  1. Set `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, and `BREVO_SENDER_NAME` in your server environment.
+  2. Verify sender domain in the Brevo admin console.
+  3. Ensure `BREVO_MOCK_MODE` is unset or `false`.
+  4. Ensure `EmailReminderService` runs exclusively on the backend/server environment so `BREVO_API_KEY` is never bundled into client-side assets.
 
 ## Supabase setup
 
