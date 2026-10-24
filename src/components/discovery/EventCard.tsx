@@ -84,8 +84,7 @@ export function EventCard({
           )}
         </div>
 
-        {/* Save button only for live events (never for sample/preview events) */}
-        {onToggleSave && !event.isSample && (
+        {onToggleSave && (
           <button
             type="button"
             className={`save-button ${saved ? 'is-saved' : ''}`}
@@ -108,7 +107,10 @@ export function EventCard({
             <Calendar size={13} className="meta-icon" aria-hidden="true" />
             <time dateTime={event.startDateTime}>{timeStr}</time>
           </span>
-          {event.price && <span className="event-price-tag">{event.price}</span>}
+          <div className="event-card-status-row">
+            {saved && <span className="event-saved-label">Saved</span>}
+            {event.price && <span className="event-price-tag">{event.price}</span>}
+          </div>
         </div>
 
         {/* Scannable Event Title */}

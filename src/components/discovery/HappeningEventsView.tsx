@@ -21,6 +21,8 @@ import { EventCard } from './EventCard'
 import { DiscoveryMap } from './DiscoveryMap'
 
 type DateFilterKey = 'all' | 'today' | 'weekend' | 'week'
+type PriceFilterKey = 'all' | 'free' | 'paid'
+type FormatFilterKey = 'all' | 'online' | 'in-person'
 type ViewMode = 'split' | 'grid' | 'map'
 
 interface HappeningEventsViewProps {
@@ -78,6 +80,8 @@ export function HappeningEventsView({
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All categories')
   const [dateFilter, setDateFilter] = useState<DateFilterKey>('all')
+  const [priceFilter, setPriceFilter] = useState<PriceFilterKey>('all')
+  const [formatFilter, setFormatFilter] = useState<FormatFilterKey>('all')
   const [activeLocation, setActiveLocation] = useState<ActiveLocation | null>(null)
   const [radiusKm, setRadiusKm] = useState<number>(10)
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
@@ -174,20 +178,32 @@ export function HappeningEventsView({
         return false
       }
 
+      const isFree = /free/i.test(event.price ?? '')
+      if (priceFilter === 'free' && !isFree) return false
+      if (priceFilter === 'paid' && isFree) return false
+
+      const isOnline = event.latitude === null || event.longitude === null || /online|virtual/i.test(`${event.venueName} ${event.address}`)
+      if (formatFilter === 'online' && !isOnline) return false
+      if (formatFilter === 'in-person' && isOnline) return false
+
       return true
     })
-  }, [distanceFiltered, searchQuery, selectedCategory, dateFilter])
+  }, [distanceFiltered, searchQuery, selectedCategory, dateFilter, priceFilter, formatFilter])
 
   const hasActiveFilters =
     searchQuery.trim().length > 0 ||
     selectedCategory !== 'All categories' ||
     dateFilter !== 'all' ||
+    priceFilter !== 'all' ||
+    formatFilter !== 'all' ||
     activeLocation !== null
 
   const handleResetFilters = () => {
     setSearchQuery('')
     setSelectedCategory('All categories')
     setDateFilter('all')
+    setPriceFilter('all')
+    setFormatFilter('all')
     setActiveLocation(null)
   }
 
@@ -334,6 +350,42 @@ export function HappeningEventsView({
             </select>
           </div>
 
+          <div className="category-filter-group">
+            <span className="filter-group-label">Price:</span>
+            <select
+              className="category-select-pill"
+              value={priceFilter}
+              onChange={(e) => setPriceFilter(e.target.value as PriceFilterKey)}
+              aria-label="Filter by price"
+            >
+              <option value="all">Any price</option>
+              <option value="free">Free</option>
+              <option value="paid">Paid</option>
+            </select>
+          </div>
+
+          <div className="date-filter-group" role="radiogroup" aria-label="Event format filter">
+            <span className="filter-group-label">Format:</span>
+            <button
+              type="button"
+              className={`filter-pill ${formatFilter === 'all' ? 'is-active' : ''}`}
+              onClick={() => setFormatFilter('all')}
+              role="radio"
+              aria-checked={formatFilter === 'all'}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              className={`filter-pill ${formatFilter === 'online' ? 'is-active' : ''}`}
+              onClick={() => setFormatFilter('online')}
+              role="radio"
+              aria-checked={formatFilter === 'online'}
+            >
+              Online
+            </button>
+          </div>
+
           {/* Radius Filter Pills */}
           <RadiusSelector radiusKm={radiusKm} onChangeRadius={setRadiusKm} />
 
@@ -449,7 +501,7 @@ export function HappeningEventsView({
                     isSelected={selectedEventId === event.id}
                     onClick={() => setSelectedEventId(event.id)}
                     saved={savedIds.includes(event.id)}
-                    onToggleSave={event.isSample ? undefined : onToggleSave}
+                    onToggleSave={onToggleSave}
                   />
                 ))}
               </div>

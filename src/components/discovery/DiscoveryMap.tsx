@@ -64,7 +64,6 @@ export function DiscoveryMap({
 
   const [runtimeMapError, setRuntimeMapError] = useState<string | null>(null)
 
-  const apiKey = import.meta.env.VITE_GEOAPIFY_API_KEY?.trim()
   const mapError = runtimeMapError
 
   // Initialize Map
@@ -86,46 +85,21 @@ export function DiscoveryMap({
       // Add zoom control in top-right
       L.control.zoom({ position: 'topright' }).addTo(map)
 
-      // Choose tile provider: Geoapify if apiKey configured, otherwise CartoDB Voyager
-      if (apiKey) {
-        L.control
-          .attribution({ position: 'bottomright', prefix: false })
-          .addAttribution(
-            'Powered by <a href="https://www.geoapify.com/" target="_blank" rel="noreferrer">Geoapify</a> | © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>'
-          )
-          .addTo(map)
+      // OpenStreetMap tiles keep the discovery map usable without a map-provider API key.
+      L.control
+        .attribution({ position: 'bottomright', prefix: false })
+        .addAttribution('© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors')
+        .addTo(map)
 
-        const tileUrl = `https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=${apiKey}`
-        const tileLayer = L.tileLayer(tileUrl, {
-          maxZoom: 20,
-          subdomains: ['maps'],
-        })
+      const tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+      })
 
-        tileLayer.on('tileerror', () => {
-          setRuntimeMapError('Unable to load Geoapify map tiles. Please check your network or API key quota.')
-        })
+      tileLayer.on('tileerror', () => {
+        setRuntimeMapError('Unable to load map tiles. Please check your internet connection.')
+      })
 
-        tileLayer.addTo(map)
-      } else {
-        // High-aesthetic warm fallback tiles: CartoDB Voyager (warm linen/cream tone)
-        L.control
-          .attribution({ position: 'bottomright', prefix: false })
-          .addAttribution(
-            '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>'
-          )
-          .addTo(map)
-
-        const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-          maxZoom: 19,
-          subdomains: 'abcd',
-        })
-
-        tileLayer.on('tileerror', () => {
-          setRuntimeMapError('Unable to load map tiles. Please check your internet connection.')
-        })
-
-        tileLayer.addTo(map)
-      }
+      tileLayer.addTo(map)
 
       const layerGroup = L.layerGroup().addTo(map)
 
@@ -144,7 +118,7 @@ export function DiscoveryMap({
         layerGroupRef.current = null
       }
     }
-  }, [apiKey, activeLocation?.coordinates.latitude, activeLocation?.coordinates.longitude])
+  }, [activeLocation?.coordinates.latitude, activeLocation?.coordinates.longitude])
 
   // ResizeObserver to handle container size changes and invalidate map size
   useEffect(() => {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
 import {
   CalendarDays,
   Check,
@@ -13,6 +14,8 @@ import {
   Clock,
   Sparkles,
   ShieldCheck,
+  Share2,
+  Ticket,
 } from 'lucide-react'
 import { AppShell } from './components/AppShell'
 import { EventCard } from './components/EventCard'
@@ -67,6 +70,10 @@ function sampleToRecord(sample: GatherEvent): EventRecord {
     status: 'published',
     imageUrl: sample.imageUrl || '/images/moonlit-studio.png',
     createdAt: new Date().toISOString(),
+    hostName: sample.organizerName || 'Gather community',
+    hostBio: 'A local team bringing people together around shared interests.',
+    agenda: [{ time: start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), title: 'Welcome & introductions' }],
+    registrationQuestions: ['What are you hoping to get from this gathering?'],
   }
 }
 
@@ -183,7 +190,7 @@ function Workspace({ route }: { route: WorkspaceRoute }) {
 }
 
 function HappeningEvents({ mode }: { mode: 'user' | 'organizer' }) {
-  const { events, guests, savedIds, toggleSaved, loading } = useEvents()
+  const { events, guests, savedIds, toggleSaved, loading, previewSavedIds, togglePreviewSaved } = useEvents()
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All categories')
   const published = events.filter((event) => event.status === 'published' && event.visibility === 'public')
@@ -211,8 +218,11 @@ function HappeningEvents({ mode }: { mode: 'user' | 'organizer' }) {
     return (
       <HappeningEventsView
         events={discoveryEvents}
-        savedIds={savedIds}
-        onToggleSave={toggleSaved}
+        savedIds={[...savedIds, ...previewSavedIds]}
+        onToggleSave={(id) => {
+          if (SAMPLE_EVENTS.some((event) => event.id === id)) togglePreviewSaved(id)
+          else void toggleSaved(id)
+        }}
         loading={loading}
       />
     )
@@ -291,10 +301,14 @@ function HappeningEvents({ mode }: { mode: 'user' | 'organizer' }) {
 }
 
 function MyEvents({ mode }: { mode: 'user' | 'organizer' }) {
-  const { events, guests, savedIds, setStatus, userId, toggleSaved } = useEvents()
+  const { events, guests, savedIds, setStatus, userId, toggleSaved, previewSavedIds, previewGuests, togglePreviewSaved } = useEvents()
 
   if (mode === 'user') {
-    const mine = events.filter((event) => savedIds.includes(event.id) || Boolean(guestStatus(guests, event.id, userId)))
+    const liveMine = events.filter((event) => savedIds.includes(event.id) || Boolean(guestStatus(guests, event.id, userId)))
+    const previewMine = SAMPLE_EVENTS
+      .filter((event) => previewSavedIds.includes(event.id) || Boolean(guestStatus(previewGuests, event.id, 'local-preview-guest')))
+      .map(sampleToRecord)
+    const mine = [...liveMine, ...previewMine]
 
     return mine.length ? (
       <div className="event-index">
@@ -304,10 +318,11 @@ function MyEvents({ mode }: { mode: 'user' | 'organizer' }) {
               key={event.id}
               event={event}
               mode="user"
-              saved={savedIds.includes(event.id)}
-              guestCount={activeGuests(guests, event.id).length}
+              saved={savedIds.includes(event.id) || previewSavedIds.includes(event.id)}
+              guestCount={activeGuests([...guests, ...previewGuests], event.id).length}
               onSave={() => {
-                void toggleSaved(event.id)
+                if (SAMPLE_EVENTS.some((sample) => sample.id === event.id)) togglePreviewSaved(event.id)
+                else void toggleSaved(event.id)
               }}
             />
           ))}
@@ -390,13 +405,19 @@ function MyEvents({ mode }: { mode: 'user' | 'organizer' }) {
 }
 
 function CalendarView({ mode }: { mode: 'user' | 'organizer' }) {
-  const { events, guests, savedIds, userId } = useEvents()
+  const { events, guests, savedIds, userId, previewSavedIds, previewGuests } = useEvents()
 
-  const relevant = events.filter((event) =>
+  const liveRelevant = events.filter((event) =>
     mode === 'organizer'
       ? event.ownerId === userId && event.status !== 'cancelled'
       : event.status === 'published' && (savedIds.includes(event.id) || Boolean(guestStatus(guests, event.id, userId)))
   )
+  const previewRelevant = mode === 'user'
+    ? SAMPLE_EVENTS
+        .filter((event) => previewSavedIds.includes(event.id) || Boolean(guestStatus(previewGuests, event.id, 'local-preview-guest')))
+        .map(sampleToRecord)
+    : []
+  const relevant = [...liveRelevant, ...previewRelevant]
 
   const grouped = relevant
     .sort((a, b) => a.startDate.localeCompare(b.startDate))
@@ -451,32 +472,56 @@ function EventDetail({
   mode: 'user' | 'organizer'
   isSample?: boolean
 }) {
-  const { guests, savedIds, toggleSaved, rsvp, setStatus, setGuestStatus, checkIn, userId } = useEvents()
+  const { guests, savedIds, toggleSaved, rsvp, setStatus, setGuestStatus, checkIn, userId, previewSavedIds, previewGuests, togglePreviewSaved, rsvpToPreview } = useEvents()
   const [attendeeEmail, setAttendeeEmail] = useState('')
   const [rsvpFeedback, setRsvpFeedback] = useState<string | null>(null)
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null)
 
-  const currentStatus = guestStatus(guests, event.id, userId)
-  const attending = activeGuests(guests, event.id)
-  const guestList = eventGuests(guests, event.id)
+  const activeGuestSource = isSample ? previewGuests : guests
+  const currentStatus = guestStatus(activeGuestSource, event.id, isSample ? 'local-preview-guest' : userId)
+  const attending = activeGuests(activeGuestSource, event.id)
+  const guestList = eventGuests(activeGuestSource, event.id)
   const full = Boolean(event.capacity && attending.length >= event.capacity)
   const organizer = mode === 'organizer'
-  const isSaved = savedIds.includes(event.id)
+  const isSaved = isSample ? previewSavedIds.includes(event.id) : savedIds.includes(event.id)
 
   const handleRsvpSubmit = async () => {
-    if (isSample) {
-      setRsvpFeedback('Thank you! This is a preview gathering. Real RSVPs are enabled on live events.')
-      return
-    }
-    const targetStatus = event.registration === 'approval' ? 'requested' : 'going'
+    const targetStatus = full || event.registration === 'approval' ? 'requested' : 'going'
     try {
-      await rsvp(event, targetStatus, attendeeEmail || undefined)
+      if (isSample) rsvpToPreview(event, targetStatus)
+      else await rsvp(event, targetStatus, attendeeEmail || undefined)
       setRsvpFeedback(
         targetStatus === 'going'
-          ? 'Confirmed! You are on the attendee list.'
-          : 'Request submitted to the organizer.'
+          ? isSample ? 'Saved on this device — you’re going!' : 'Confirmed! You are on the attendee list.'
+          : full ? 'You are on the waitlist. The organizer can approve you when a spot opens.' : 'Request submitted to the organizer.'
       )
     } catch {
       setRsvpFeedback('We could not complete your RSVP. Please try again.')
+    }
+  }
+
+  const handleCancellation = async () => {
+    try {
+      if (isSample) rsvpToPreview(event, 'declined')
+      else await rsvp(event, 'declined')
+      setRsvpFeedback('Your RSVP has been cancelled. Your spot is now available to the waitlist.')
+    } catch {
+      setRsvpFeedback('We could not cancel your RSVP. Please try again.')
+    }
+  }
+
+  const handleShare = async () => {
+    const url = window.location.href
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: event.title, text: `Join me at ${event.title} on Gather.`, url })
+        setShareFeedback('Share options opened.')
+      } else {
+        await navigator.clipboard.writeText(url)
+        setShareFeedback('Event link copied.')
+      }
+    } catch {
+      setShareFeedback('Could not open sharing. You can copy this page URL from your browser.')
     }
   }
 
@@ -610,18 +655,22 @@ function EventDetail({
             </dl>
           </div>
 
+          {(event.hostName || event.hostBio) && <div className="detail-panel info-panel"><h2 className="panel-title">Hosted by</h2><p><strong>{event.hostName || 'Gather community'}</strong></p>{event.hostBio && <p className="detail-description">{event.hostBio}</p>}</div>}
+          {(event.agenda?.length ?? 0) > 0 && <div className="detail-panel info-panel"><h2 className="panel-title">Agenda</h2><ol className="agenda-list">{event.agenda?.map((item, index) => <li key={`${item.time}-${index}`}><time>{item.time}</time><span>{item.title}</span></li>)}</ol></div>}
+          {(event.registrationQuestions?.length ?? 0) > 0 && <div className="detail-panel info-panel"><h2 className="panel-title">Before you RSVP</h2><ul className="registration-question-list">{event.registrationQuestions?.map((question) => <li key={question}>{question}</li>)}</ul></div>}
+
           {/* Organizer Guest Panel */}
           {organizer && (
-            <GuestPanel
-              event={event}
-              guests={guestList}
-              onApprove={(guestUserId) => {
-                void setGuestStatus(event.id, guestUserId, 'going')
-              }}
-              onCheckIn={(eventId, guestUserId) => {
-                void checkIn(eventId, guestUserId)
-              }}
-            />
+            <>
+              <EventInsights event={event} guests={guestList} />
+              <GuestPanel
+                event={event}
+                guests={guestList}
+                full={full}
+                onApprove={(guestUserId) => { void setGuestStatus(event.id, guestUserId, 'going') }}
+                onCheckIn={(eventId, guestUserId) => { void checkIn(eventId, guestUserId) }}
+              />
+            </>
           )}
         </div>
 
@@ -657,6 +706,16 @@ function EventDetail({
                 </div>
               </div>
             </div>
+
+            {event.capacity && (
+              <div className="capacity-progress" aria-label={`${attending.length} of ${event.capacity} spots filled`}>
+                <div className="capacity-progress-label">
+                  <span>Capacity</span>
+                  <strong>{Math.min(Math.round((attending.length / event.capacity) * 100), 100)}% filled</strong>
+                </div>
+                <div className="capacity-progress-track"><span style={{ width: `${Math.min((attending.length / event.capacity) * 100, 100)}%` }} /></div>
+              </div>
+            )}
 
             {/* Organizer Actions */}
             {organizer ? (
@@ -699,7 +758,7 @@ function EventDetail({
               /* Attendee Actions */
               <div className="attendee-action-stack">
                 {/* RSVP Flow */}
-                {event.status === 'published' && event.registration !== 'closed' && !full && !isSample ? (
+                {event.status === 'published' && event.registration !== 'closed' && (!full || !currentStatus) ? (
                   <div className="rsvp-control-group">
                     {currentStatus !== 'going' && currentStatus !== 'requested' ? (
                       <>
@@ -732,6 +791,8 @@ function EventDetail({
                         </>
                       ) : currentStatus === 'requested' ? (
                         <span>Request sent</span>
+                      ) : full ? (
+                        <span>Join waitlist</span>
                       ) : event.registration === 'approval' ? (
                         <span>Request to join</span>
                       ) : (
@@ -745,10 +806,6 @@ function EventDetail({
                       </p>
                     )}
                   </div>
-                ) : isSample ? (
-                  <div className="rsvp-closed-notice">
-                    <p>This is a preview gathering. RSVP opens only for live events.</p>
-                  </div>
                 ) : full ? (
                   <div className="rsvp-closed-notice">
                     <p>This gathering is at full capacity.</p>
@@ -760,12 +817,13 @@ function EventDetail({
                 ) : null}
 
                 {/* Save & Calendar buttons */}
-                {!isSample && <div className="secondary-action-row">
+                <div className="secondary-action-row">
                   <button
                     type="button"
                     className={`button button-secondary save-action-btn ${isSaved ? 'is-selected' : ''}`}
                     onClick={() => {
-                      void toggleSaved(event.id)
+                      if (isSample) togglePreviewSaved(event.id)
+                      else void toggleSaved(event.id)
                     }}
                     aria-label={isSaved ? 'Remove from saved' : 'Save event'}
                   >
@@ -782,7 +840,27 @@ function EventDetail({
                     <Download size={17} aria-hidden="true" />
                     <span>Add to calendar</span>
                   </button>
-                </div>}
+
+                  <button
+                    type="button"
+                    className="button button-secondary share-action-btn"
+                    onClick={() => { void handleShare() }}
+                    aria-label="Share event"
+                  >
+                    <Share2 size={17} aria-hidden="true" />
+                    <span>Share</span>
+                  </button>
+                </div>
+                {shareFeedback && <p className="rsvp-feedback-msg" role="status">{shareFeedback}</p>}
+                {currentStatus === 'going' && (
+                  <>
+                    <div className="ticket-pass" aria-label="Your event check-in pass">
+                      <QRCodeSVG value={`gather:${event.id}:${isSample ? 'local-preview-guest' : userId ?? 'guest'}`} size={112} level="M" includeMargin />
+                      <div><strong><Ticket size={16} aria-hidden="true" /> Check-in pass</strong><span>Show this code at the door.</span></div>
+                    </div>
+                    <button type="button" className="text-button cancel-rsvp-button" onClick={() => { void handleCancellation() }}>Can’t make it? Cancel RSVP</button>
+                  </>
+                )}
               </div>
             )}
 
@@ -806,7 +884,7 @@ function EventDetail({
       </div>
 
       {/* Mobile Sticky Bottom RSVP Action Bar */}
-      {mode === 'user' && !isSample && event.status === 'published' && !full && event.registration !== 'closed' && (
+      {mode === 'user' && event.status === 'published' && !full && event.registration !== 'closed' && (
         <div className="mobile-sticky-action-bar" aria-label="Mobile quick actions">
           <div className="mobile-action-summary">
             <span className="mobile-action-date">{dateLabel(event.startDate, event.startTime)}</span>
@@ -830,11 +908,13 @@ function EventDetail({
 function GuestPanel({
   event,
   guests,
+  full,
   onApprove,
   onCheckIn,
 }: {
   event: EventRecord
   guests: ReturnType<typeof activeGuests>
+  full: boolean
   onApprove: (userId: string) => void
   onCheckIn: (eventId: string, userId: string) => void
 }) {
@@ -856,8 +936,8 @@ function GuestPanel({
               </div>
               <div className="guest-actions">
                 {guest.status === 'requested' ? (
-                  <button type="button" className="text-button" onClick={() => onApprove(guest.userId)}>
-                    Approve
+                  <button type="button" className="text-button" disabled={full} onClick={() => onApprove(guest.userId)}>
+                    {full ? 'Waitlisted' : 'Approve'}
                   </button>
                 ) : (
                   <button
@@ -876,6 +956,24 @@ function GuestPanel({
         <p className="empty-guest-hint">RSVPs and guest registrations will appear here.</p>
       )}
     </div>
+  )
+}
+
+function EventInsights({ event, guests }: { event: EventRecord; guests: ReturnType<typeof eventGuests> }) {
+  const approved = guests.filter((guest) => guest.status === 'going')
+  const waitlisted = guests.filter((guest) => guest.status === 'requested')
+  const checkedIn = approved.filter((guest) => guest.checkedIn)
+  const capacityRemaining = event.capacity === null ? '∞' : Math.max(event.capacity - approved.length, 0)
+  return (
+    <section className="detail-panel event-insights" aria-labelledby="insights-title">
+      <h2 id="insights-title" className="panel-title">Event pulse</h2>
+      <div className="insights-grid">
+        <div><strong>{approved.length}</strong><span>confirmed</span></div>
+        <div><strong>{waitlisted.length}</strong><span>waitlisted</span></div>
+        <div><strong>{checkedIn.length}</strong><span>checked in</span></div>
+        <div><strong>{capacityRemaining}</strong><span>spots left</span></div>
+      </div>
+    </section>
   )
 }
 

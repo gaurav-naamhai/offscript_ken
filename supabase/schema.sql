@@ -37,12 +37,20 @@ create table if not exists public.events (
   registration text not null default 'open' check (registration in ('open', 'approval', 'closed')),
   status text not null default 'draft' check (status in ('draft', 'published', 'cancelled')),
   image_url text not null default '/images/moonlit-studio.png',
+  host_name text not null default '',
+  host_bio text not null default '',
+  agenda jsonb not null default '[]'::jsonb,
+  registration_questions jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 alter table public.events add column if not exists latitude double precision;
 alter table public.events add column if not exists longitude double precision;
+alter table public.events add column if not exists host_name text not null default '';
+alter table public.events add column if not exists host_bio text not null default '';
+alter table public.events add column if not exists agenda jsonb not null default '[]'::jsonb;
+alter table public.events add column if not exists registration_questions jsonb not null default '[]'::jsonb;
 
 create table if not exists public.event_saves (
   event_id uuid not null references public.events(id) on delete cascade,

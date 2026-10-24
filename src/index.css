@@ -926,8 +926,8 @@ h1, h2, h3, .serif-heading {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px 16px;
-  padding: 10px 16px;
+  gap: 10px 14px;
+  padding: 12px 16px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -947,7 +947,7 @@ h1, h2, h3, .serif-heading {
   font-size: 12px;
   font-weight: 700;
   color: var(--muted);
-  margin-right: 2px;
+  margin-right: 4px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -956,8 +956,8 @@ h1, h2, h3, .serif-heading {
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--muted);
-  min-height: 44px;
-  padding: 6px 14px;
+  min-height: 38px;
+  padding: 5px 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -986,7 +986,7 @@ h1, h2, h3, .serif-heading {
 }
 
 .category-select-pill {
-  min-height: 44px;
+  min-height: 38px;
   padding: 0 32px 0 14px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1371,6 +1371,30 @@ h1, h2, h3, .serif-heading {
   margin-bottom: 8px;
 }
 
+.event-card-status-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.event-saved-label {
+  color: var(--brand);
+  background: var(--brand-soft);
+  border: 1px solid #ddcbd8;
+  padding: 2.5px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11.5px;
+  font-weight: 750;
+}
+
+.agenda-list, .registration-question-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.agenda-list li { display: grid; grid-template-columns: 76px 1fr; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border-subtle); }
+.agenda-list time { color: var(--terracotta); font-weight: 750; font-size: 13px; }
+.agenda-list span, .registration-question-list li { color: var(--ink); font-size: 14px; }
+.registration-question-list li::before { content: '•'; color: var(--terracotta); margin-right: 8px; }
+
 .event-date-pill {
   display: inline-flex;
   align-items: center;
@@ -1385,7 +1409,6 @@ h1, h2, h3, .serif-heading {
 }
 
 .event-price-tag {
-  margin-left: auto;
   font-size: 11.5px;
   font-weight: 750;
   color: var(--terracotta);
@@ -1395,6 +1418,26 @@ h1, h2, h3, .serif-heading {
   border-radius: var(--radius-full);
   white-space: nowrap;
 }
+
+.capacity-progress {
+  margin: 16px 0 4px;
+  padding: 12px 0 2px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.capacity-progress-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  margin-bottom: 7px;
+}
+
+.capacity-progress-label strong { color: var(--brand); }
+.capacity-progress-track { height: 6px; overflow: hidden; background: var(--surface-alt); border-radius: var(--radius-full); }
+.capacity-progress-track span { display: block; height: 100%; background: var(--terracotta); border-radius: inherit; transition: width 300ms ease; }
 
 .event-title {
   margin: 0 0 8px;
@@ -2053,15 +2096,38 @@ h1, h2, h3, .serif-heading {
   color: var(--brand);
 }
 
+.ticket-pass {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-alt);
+}
+
+.ticket-pass svg { flex-shrink: 0; background: #fff; border-radius: 6px; }
+.ticket-pass strong, .ticket-pass span { display: flex; align-items: center; gap: 6px; }
+.ticket-pass strong { color: var(--ink); font-size: 13px; }
+.ticket-pass span { color: var(--muted); font-size: 12px; margin-top: 3px; }
+.cancel-rsvp-button { align-self: flex-start; color: var(--danger); }
+
+.insights-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.insights-grid div { padding: 12px 10px; background: var(--surface-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); }
+.insights-grid strong, .insights-grid span { display: block; }
+.insights-grid strong { font-size: 22px; line-height: 1; color: var(--brand); }
+.insights-grid span { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
 .secondary-action-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   margin-top: 4px;
 }
 
 .save-action-btn,
-.cal-download-btn {
+.cal-download-btn,
+.share-action-btn {
   min-height: 44px;
   font-size: 13px;
   font-weight: 600;
