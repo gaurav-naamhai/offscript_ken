@@ -17,6 +17,7 @@ export interface GatherEvent {
   price?: string
   imageUrl?: string
   organizerName?: string
+  registrationHref?: string
 }
 
 export interface GatherEventWithDistance extends GatherEvent {

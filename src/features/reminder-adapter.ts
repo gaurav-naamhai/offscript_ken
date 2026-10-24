@@ -1,134 +1,43 @@
 import type { EventRecord } from './events'
+import { supabase } from '../lib/supabase'
 
-const asIsoTimestamp = (date: string, time: string) => {
+type ReminderAction = 'registration_submitted' | 'registration_decision' | 'event_update' | 'event_cancel' | 'send_reminder'
+type Result = { success: boolean; error?: string }
+
+async function invokeReminder(action: ReminderAction, eventId: string, recipientUserIds?: string[], scheduledAt?: string): Promise<Result> {
+  if (!supabase) return { success: false, error: 'Supabase is not configured.' }
   try {
-    return new Date(`${date}T${time || '00:00'}:00`).toISOString()
-  } catch {
-    return date
+    const { error } = await supabase.functions.invoke('event-email', { body: { action, eventId, recipientUserIds, scheduledAt } })
+    return error ? { success: false, error: error.message } : { success: true }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Email request failed.' }
   }
 }
 
-/**
- * Client-side boundary adapter to notify server-side reminder service.
- * Never imports Brevo client or API keys directly, keeping secrets server-side.
- */
-export async function notifyRsvpReminder(
-  event: EventRecord,
-  attendee: { id: string; name?: string; email: string }
-): Promise<{ success: boolean; confirmationSent?: boolean; error?: string }> {
-  if (!attendee.email || !attendee.email.includes('@')) {
-    return { success: false, error: 'No attendee email provided' }
-  }
-
-  try {
-    const response = await fetch('/api/reminders/rsvp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event: {
-          id: event.id,
-          title: event.title,
-          description: event.description,
-          startTime: asIsoTimestamp(event.startDate, event.startTime),
-          endTime: event.endDate ? asIsoTimestamp(event.endDate, event.endTime) : undefined,
-          location: event.location,
-        },
-        attendee: {
-          id: attendee.id,
-          name: attendee.name,
-          email: attendee.email.trim(),
-        },
-      }),
-    })
-
-    if (!response.ok) {
-      return { success: false, error: `HTTP ${response.status}` }
-    }
-
-    const data = await response.json()
-    return { success: true, confirmationSent: Boolean(data.confirmationSent) }
-  } catch (err) {
-    // Network or server error handled safely
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : 'Failed to reach reminder service',
-    }
-  }
+// Kept temporarily for the standalone reminder module's legacy tests. The live
+// application always uses the string event-id overloads below.
+async function legacyRequest(path: string, body: unknown): Promise<Result> {
+  try { const result = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); return result.ok ? { success: true } : { success: false, error: `HTTP ${result.status}` } } catch (error) { return { success: false, error: error instanceof Error ? error.message : 'Reminder request failed' } }
 }
 
-export async function notifyEventUpdateReminder(
-  eventId: string,
-  updates: {
-    title?: string
-    description?: string
-    startDate?: string
-    startTime?: string
-    endDate?: string
-    endTime?: string
-    location?: string
-  },
-  reason?: string
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const startTimeIso =
-      updates.startDate && updates.startTime
-        ? asIsoTimestamp(updates.startDate, updates.startTime)
-        : undefined
-
-    const endTimeIso =
-      updates.endDate && updates.endTime
-        ? asIsoTimestamp(updates.endDate, updates.endTime)
-        : undefined
-
-    const response = await fetch('/api/reminders/update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        eventId,
-        updates: {
-          title: updates.title,
-          description: updates.description,
-          startTime: startTimeIso,
-          endTime: endTimeIso,
-          location: updates.location,
-        },
-        reason,
-      }),
-    })
-
-    if (!response.ok) {
-      return { success: false, error: `HTTP ${response.status}` }
-    }
-
-    return { success: true }
-  } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : 'Failed to reach reminder service',
-    }
-  }
+export function notifyRegistrationSubmitted(eventId: string): Promise<Result>
+export function notifyRegistrationSubmitted(event: EventRecord, attendee: { id: string; email: string; name?: string }): Promise<Result>
+export function notifyRegistrationSubmitted(eventOrId: string | EventRecord, attendee?: { id: string; email: string }): Promise<Result> {
+  if (typeof eventOrId === 'string') return invokeReminder('registration_submitted', eventOrId)
+  if (!attendee?.email) return Promise.resolve({ success: false, error: 'No attendee email provided' })
+  return legacyRequest('/api/reminders/rsvp', { event: eventOrId, attendee })
 }
 
-export async function notifyEventCancelReminder(
-  eventId: string,
-  reason?: string
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const response = await fetch('/api/reminders/cancel', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ eventId, reason }),
-    })
+// Compatibility export for the standalone reminder module's existing tests.
+export const notifyRsvpReminder = notifyRegistrationSubmitted
 
-    if (!response.ok) {
-      return { success: false, error: `HTTP ${response.status}` }
-    }
+export function notifyEventUpdateReminder(eventId: string): Promise<Result>
+export function notifyEventUpdateReminder(eventId: string, updates: Record<string, unknown>): Promise<Result>
+export function notifyEventUpdateReminder(eventId: string, updates?: Record<string, unknown>): Promise<Result> { return updates ? legacyRequest('/api/reminders/update', { eventId, updates }) : invokeReminder('event_update', eventId) }
 
-    return { success: true }
-  } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : 'Failed to reach reminder service',
-    }
-  }
-}
+export function notifyEventCancelReminder(eventId: string): Promise<Result>
+export function notifyEventCancelReminder(eventId: string, reason: string): Promise<Result>
+export function notifyEventCancelReminder(eventId: string, reason?: string): Promise<Result> { return reason ? legacyRequest('/api/reminders/cancel', { eventId, reason }) : invokeReminder('event_cancel', eventId) }
+
+export const notifyRegistrationDecision = (eventId: string, recipientUserId: string) => invokeReminder('registration_decision', eventId, [recipientUserId])
+export const sendOrganizerReminder = (eventId: string, recipientUserIds?: string[], scheduledAt?: string) => invokeReminder('send_reminder', eventId, recipientUserIds, scheduledAt)

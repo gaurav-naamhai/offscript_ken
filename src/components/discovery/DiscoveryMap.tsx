@@ -65,13 +65,11 @@ export function DiscoveryMap({
   const [runtimeMapError, setRuntimeMapError] = useState<string | null>(null)
 
   const apiKey = import.meta.env.VITE_GEOAPIFY_API_KEY?.trim()
-  const mapError = !apiKey
-    ? 'VITE_GEOAPIFY_API_KEY is not configured. Map tiles require a valid API key.'
-    : runtimeMapError
+  const mapError = runtimeMapError
 
   // Initialize Map
   useEffect(() => {
-    if (!containerRef.current || mapRef.current || !apiKey) return
+    if (!containerRef.current || mapRef.current) return
 
     try {
       // Default view initialized at neutral center
@@ -91,22 +89,22 @@ export function DiscoveryMap({
       // Add attribution in bottom-right
       L.control
         .attribution({ position: 'bottomright', prefix: false })
-        .addAttribution(
-          'Powered by <a href="https://www.geoapify.com/" target="_blank" rel="noreferrer">Geoapify</a> | © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>'
-        )
+        .addAttribution(apiKey
+          ? 'Powered by <a href="https://www.geoapify.com/" target="_blank" rel="noreferrer">Geoapify</a> | © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>'
+          : '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>')
         .addTo(map)
 
-      // Official Geoapify Raster Map Tile URL
-      // Style: osm-bright
-      const tileUrl = `https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=${apiKey}`
+      const tileUrl = apiKey
+        ? `https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=${apiKey}`
+        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 
       const tileLayer = L.tileLayer(tileUrl, {
         maxZoom: 20,
-        subdomains: ['maps'],
+        subdomains: apiKey ? ['maps'] : ['a', 'b', 'c'],
       })
 
       tileLayer.on('tileerror', () => {
-        setRuntimeMapError('Unable to load Geoapify map tiles. Please check your network or API key quota.')
+        setRuntimeMapError('Unable to load map tiles. Please check your network connection.')
       })
 
       tileLayer.addTo(map)

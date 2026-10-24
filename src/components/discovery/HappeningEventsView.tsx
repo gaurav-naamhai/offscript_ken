@@ -1,8 +1,6 @@
-import { useState, useMemo } from 'react'
-import { Compass, Sparkles, List, Map } from 'lucide-react'
-import type { Section } from '../../features/workspace'
-import type { ActiveLocation, GatherEvent } from '../../types/event'
-import { SAMPLE_EVENTS } from '../../features/events/sampleEvents'
+import { useEffect, useMemo, useState } from 'react'
+import { ArrowDown, Compass, List, Map, MapPin, Navigation, Search, SlidersHorizontal } from 'lucide-react'
+import type { GatherEvent, ActiveLocation } from '../../types/event'
 import { filterUpcomingEventsByRadius } from '../../features/events/eventFilter'
 import { useGeolocation } from '../../features/location/useGeolocation'
 import { LocationFilterBar } from './LocationFilterBar'
@@ -10,223 +8,96 @@ import { EventCard } from './EventCard'
 import { DiscoveryMap } from './DiscoveryMap'
 
 interface HappeningEventsViewProps {
-  section?: Section | { label: string; subtitle?: string }
-  /**
-   * Pluggable events list. Defaults to SAMPLE_EVENTS for development,
-   * but ready to accept live events from the team's event creation or backend system.
-   */
-  events?: GatherEvent[]
+  events: GatherEvent[]
 }
 
-export function HappeningEventsView({
-  section,
-  events = SAMPLE_EVENTS,
-}: HappeningEventsViewProps) {
+export function HappeningEventsView({ events }: HappeningEventsViewProps) {
+  const [showLocationPrompt, setShowLocationPrompt] = useState(true)
   const [activeLocation, setActiveLocation] = useState<ActiveLocation | null>(null)
-  const [radiusKm, setRadiusKm] = useState<number>(10)
+  const [radiusKm, setRadiusKm] = useState(10)
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
-  const [mobileView, setMobileView] = useState<'list' | 'map'>('list')
+  const [showMap, setShowMap] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  const [query, setQuery] = useState('')
+  const [category, setCategory] = useState('All events')
+  const { gpsLocation, status: gpsStatus, errorMessage: gpsErrorMessage, requestGps } = useGeolocation()
 
-  const { gpsLocation, status: gpsStatus, errorMessage: gpsErrorMessage, requestGps } =
-    useGeolocation()
-
-  // Handle "Near me" click
-  const handleNearMeClick = async () => {
-    // If we already have stored GPS coordinates, restore them directly
-    if (gpsLocation) {
-      setActiveLocation({
-        name: 'My GPS Location',
-        coordinates: gpsLocation,
-        isGps: true,
-      })
-      return
-    }
-
-    // Otherwise, request fresh GPS from browser Geolocation API
-    const coords = await requestGps()
-    if (coords) {
-      setActiveLocation({
-        name: 'My GPS Location',
-        coordinates: coords,
-        isGps: true,
-      })
-    }
+  const handleNearMe = async () => {
+    const coords = gpsLocation ?? await requestGps()
+    if (coords) setActiveLocation({ name: 'My location', coordinates: coords, isGps: true })
   }
-
-  // Handle manual location selection (never overwrites gpsLocation)
-  const handleSelectLocation = (location: ActiveLocation) => {
-    setActiveLocation(location)
+  const askForLocation = () => {
+    setShowLocationPrompt(false)
+    setShowFilters(true)
+    void handleNearMe()
   }
-
-  const handleClearLocation = () => {
-    setActiveLocation(null)
-  }
-
-  // Filter events according to active location and selected radius
+  const clearLocation = () => setActiveLocation(null)
+  const categories = useMemo(() => ['All events', ...new Set(events.map((event) => event.category))], [events])
   const filteredEvents = useMemo(() => {
-    return filterUpcomingEventsByRadius(events, {
-      center: activeLocation ? activeLocation.coordinates : null,
+    const byDistance = filterUpcomingEventsByRadius(events, {
+      center: activeLocation?.coordinates ?? null,
       radiusKm: activeLocation ? radiusKm : null,
     })
-  }, [events, activeLocation, radiusKm])
-
-  const sectionContent = (
-    <>
-      {/* Location Filter & Search Controls */}
-      <div className="discovery-header-controls">
-        <LocationFilterBar
-          activeLocation={activeLocation}
-          onSelectLocation={handleSelectLocation}
-          onClearLocation={handleClearLocation}
-          gpsStatus={gpsStatus}
-          gpsErrorMessage={gpsErrorMessage}
-          onNearMeClick={handleNearMeClick}
-          radiusKm={radiusKm}
-          onChangeRadius={setRadiusKm}
-        />
-
-        {/* Mobile View Toggle Bar */}
-        <div className="mobile-view-toggle-bar" role="tablist" aria-label="Switch between list and map views">
-          <button
-            type="button"
-            className={`view-toggle-pill ${mobileView === 'list' ? 'is-active' : ''}`}
-            onClick={() => setMobileView('list')}
-            role="tab"
-            aria-selected={mobileView === 'list'}
-          >
-            <List size={15} aria-hidden="true" />
-            <span>List</span>
-          </button>
-          <button
-            type="button"
-            className={`view-toggle-pill ${mobileView === 'map' ? 'is-active' : ''}`}
-            onClick={() => setMobileView('map')}
-            role="tab"
-            aria-selected={mobileView === 'map'}
-          >
-            <Map size={15} aria-hidden="true" />
-            <span>Map</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Split Content Area */}
-      <div className={`discovery-split-layout show-mobile-${mobileView}`}>
-        {/* Left Column: Events List / Empty State */}
-        <div className="discovery-list-column">
-          {filteredEvents.length > 0 ? (
-            <div className="discovery-grid-wrapper">
-              <div className="discovery-results-meta">
-                <span className="results-count">
-                  {filteredEvents.length} {filteredEvents.length === 1 ? 'gathering' : 'gatherings'} found
-                </span>
-                {!activeLocation && (
-                  <span className="unfiltered-hint">
-                    <Sparkles size={14} aria-hidden="true" />
-                    Select a location or click &ldquo;Near me&rdquo; to sort by distance.
-                  </span>
-                )}
-              </div>
-
-              <div className="events-grid" role="feed" aria-label="Upcoming events">
-                {filteredEvents.map((event) => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    isSelected={selectedEventId === event.id}
-                    onClick={() => setSelectedEventId(event.id)}
-                  />
-                ))}
-              </div>
-            </div>
-          ) : (
-            /* Empty State when no events are within radius */
-            <div className="empty-state discovery-empty-state" role="status">
-              <div className="empty-icon">
-                <Compass size={54} strokeWidth={1.35} aria-hidden="true" />
-              </div>
-              <h2>
-                {activeLocation?.isGps
-                  ? `No gatherings found within ${radiusKm} km of your location`
-                  : `No gatherings found within ${radiusKm} km`}
-              </h2>
-              <p>
-                {activeLocation?.isGps
-                  ? `There are no upcoming events listed within ${radiusKm} km of your current GPS position. Initial test events are situated across the Mumbai and Maharashtra region.`
-                  : `There are no upcoming events listed within ${radiusKm} km of ${activeLocation?.name || 'this location'}. Try increasing the search radius or exploring another area.`}
-              </p>
-              <div className="empty-state-actions">
-                {radiusKm < 500 && (
-                  <button
-                    type="button"
-                    className="discovery-action-button"
-                    onClick={() => {
-                      const nextRadius =
-                        radiusKm < 25
-                          ? 25
-                          : radiusKm < 50
-                          ? 50
-                          : radiusKm < 100
-                          ? 100
-                          : radiusKm < 250
-                          ? 250
-                          : Math.min(radiusKm + 50, 500)
-                      setRadiusKm(nextRadius)
-                    }}
-                  >
-                    Expand radius to{' '}
-                    {radiusKm < 25
-                      ? 25
-                      : radiusKm < 50
-                      ? 50
-                      : radiusKm < 100
-                      ? 100
-                      : radiusKm < 250
-                      ? 250
-                      : Math.min(radiusKm + 50, 500)}{' '}
-                    km
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="discovery-secondary-button"
-                  onClick={handleClearLocation}
-                >
-                  View all gatherings
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: Interactive Map */}
-        <div className="discovery-map-column">
-          <DiscoveryMap
-            events={filteredEvents}
-            activeLocation={activeLocation}
-            radiusKm={radiusKm}
-            selectedEventId={selectedEventId}
-            onSelectEvent={setSelectedEventId}
-          />
-        </div>
-      </div>
-    </>
-  )
-
-  if (section) {
-    const label = 'label' in section ? section.label : ''
-    const subtitle = 'subtitle' in section && typeof section.subtitle === 'string' ? section.subtitle : undefined
-    return (
-      <section className="feature-section discovery-section" aria-labelledby="section-title">
-        <div className="section-heading">
-          <h1 id="section-title">{label}</h1>
-          {subtitle && <p>{subtitle}</p>}
-        </div>
-        {sectionContent}
-      </section>
+    return byDistance.filter((event) =>
+      (category === 'All events' || event.category === category) &&
+      `${event.title} ${event.description} ${event.venueName} ${event.category}`.toLowerCase().includes(query.trim().toLowerCase()),
     )
-  }
+  }, [events, activeLocation, radiusKm, category, query])
 
-  return <div className="discovery-section">{sectionContent}</div>
+  useEffect(() => {
+    if (selectedEventId && !filteredEvents.some((event) => event.id === selectedEventId)) setSelectedEventId(null)
+  }, [filteredEvents, selectedEventId])
+
+  return (
+    <div className="discovery-section builder-discovery">
+      <section className="builder-hero" aria-labelledby="builder-hero-title">
+        <img className="builder-hero-image" src="/images/gather-hackathon-hero.png" alt="Mumbai builders working together at a daylight hackathon" fetchPriority="high" />
+        <div className="builder-hero-shade" />
+        <div className="builder-hero-copy">
+          <h1 id="builder-hero-title">Mumbai,<br />in <em>build mode.</em></h1>
+          <p>Find your people. Ship something together.</p>
+          <a className="builder-hero-link" href="#gather-club-events">Explore this week <ArrowDown size={17} aria-hidden="true" /></a>
+        </div>
+        <span className="builder-hero-caption">A community for builders in Mumbai</span>
+      </section>
+
+      <section className="builder-events" id="gather-club-events" aria-labelledby="builder-events-title">
+        <header className="builder-events-heading">
+          <div>
+            <p className="builder-section-kicker">Real people. Real projects. A stronger Mumbai.</p>
+            <h2 id="builder-events-title">Coming together this week</h2>
+          </div>
+          <div className="builder-heading-actions">
+            <button className={`builder-map-toggle ${showFilters ? 'is-active' : ''}`} type="button" aria-expanded={showFilters} onClick={() => setShowFilters((value) => !value)}>
+              <SlidersHorizontal size={15} aria-hidden="true" />{showFilters ? 'Close filters' : 'Search & filters'}
+            </button>
+            <button className={`builder-map-toggle ${showMap ? 'is-active' : ''}`} type="button" aria-pressed={showMap} onClick={() => setShowMap((value) => !value)}>
+              {showMap ? <List size={16} aria-hidden="true" /> : <Map size={16} aria-hidden="true" />}
+              {showMap ? 'Back to events' : 'Explore the map'}
+            </button>
+          </div>
+        </header>
+
+        {showLocationPrompt && !activeLocation ? <aside className="builder-location-prompt"><MapPin size={19} aria-hidden="true" /><div><strong>Find gatherings near you</strong><span>Share your location to put nearby events first. You can still browse other places.</span></div><button type="button" onClick={askForLocation}><Navigation size={15} aria-hidden="true" />Use my location</button><button className="builder-location-dismiss" type="button" onClick={() => setShowLocationPrompt(false)}>Not now</button></aside> : null}
+
+        {showFilters ? <div className="builder-tools">
+          <label className="builder-search"><Search size={17} aria-hidden="true" /><span className="visually-hidden">Search events</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search events, ideas, places" /></label>
+          <LocationFilterBar activeLocation={activeLocation} onSelectLocation={setActiveLocation} onClearLocation={clearLocation} gpsStatus={gpsStatus} gpsErrorMessage={gpsErrorMessage} onNearMeClick={() => { void handleNearMe() }} radiusKm={radiusKm} onChangeRadius={setRadiusKm} />
+        </div> : null}
+
+        <nav className="builder-categories" aria-label="Filter events by type">
+          {categories.map((item) => <button key={item} type="button" className={category === item ? 'is-active' : ''} aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}
+        </nav>
+
+        {filteredEvents.length > 0 ? <p className="builder-results-count">{filteredEvents.length} upcoming {filteredEvents.length === 1 ? 'event' : 'events'} around Mumbai</p> : <div className="builder-no-events"><Compass size={25} /><p>No events match this search. Try another topic or clear your filters.</p><button type="button" onClick={() => { setCategory('All events'); setQuery(''); clearLocation() }}>Show all events</button></div>}
+
+        <div className={`builder-event-layout ${showMap ? 'show-map' : ''}`}>
+          <div className="builder-event-grid" role="feed" aria-label="Upcoming tech and startup events">
+            {filteredEvents.map((event) => <EventCard key={event.id} event={event} isSelected={selectedEventId === event.id} onClick={() => setSelectedEventId(event.id)} />)}
+          </div>
+          {showMap ? <div className="discovery-map-column builder-map-column"><DiscoveryMap events={filteredEvents} activeLocation={activeLocation} radiusKm={radiusKm} selectedEventId={selectedEventId} onSelectEvent={setSelectedEventId} /></div> : null}
+        </div>
+      </section>
+    </div>
+  )
 }
-

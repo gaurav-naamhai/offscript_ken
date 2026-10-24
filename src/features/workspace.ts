@@ -6,9 +6,9 @@ export type WorkspaceRoute = { mode: WorkspaceMode; section: SectionId; eventId?
 export type Section = { id: SectionId; label: string; icon: LucideIcon }
 
 export const navigation: Section[] = [
-  { id: 'happening-events', label: 'Happening Events', icon: Calendar },
+  { id: 'happening-events', label: 'Events happening', icon: Calendar },
   { id: 'my-events', label: 'My Events', icon: Bookmark },
-  { id: 'calendar', label: 'Calendar', icon: CalendarDays },
+  { id: 'calendar', label: 'Calendar view', icon: CalendarDays },
 ]
 
 export function getRoute(): WorkspaceRoute {
