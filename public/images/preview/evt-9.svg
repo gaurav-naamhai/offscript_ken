@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-label="Illustrated preview poster for FOLK / SOUNDS">
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#344045"/><stop offset="1" stop-color="#b49b78"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#e9d6bd" stop-opacity=".68"/><stop offset="1" stop-color="#e9d6bd" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1200" height="750" fill="url(#bg)"/>
+  <circle cx="659" cy="387" r="390" fill="url(#glow)"/>
+  <path d="M-80 461 C 250 381, 580 743, 1280 363" fill="none" stroke="#e9d6bd" stroke-opacity=".54" stroke-width="130"/>
+  <path d="M-80 501 C 250 421, 580 783, 1280 403" fill="none" stroke="#344045" stroke-opacity=".55" stroke-width="36"/>
+  <circle cx="1053" cy="211" r="164" fill="none" stroke="#e9d6bd" stroke-opacity="0.1" stroke-width="1"/><circle cx="246" cy="362" r="207" fill="none" stroke="#e9d6bd" stroke-opacity="0.115" stroke-width="2"/><circle cx="439" cy="513" r="70" fill="none" stroke="#e9d6bd" stroke-opacity="0.13" stroke-width="1"/><circle cx="632" cy="664" r="113" fill="none" stroke="#e9d6bd" stroke-opacity="0.14500000000000002" stroke-width="2"/><circle cx="825" cy="215" r="156" fill="none" stroke="#e9d6bd" stroke-opacity="0.16" stroke-width="1"/><circle cx="1018" cy="366" r="199" fill="none" stroke="#e9d6bd" stroke-opacity="0.175" stroke-width="2"/><circle cx="211" cy="517" r="242" fill="none" stroke="#e9d6bd" stroke-opacity="0.19" stroke-width="1"/>
+  <rect x="48" y="48" width="1104" height="654" fill="none" stroke="#e9d6bd" stroke-opacity=".68"/>
+  <text x="82" y="104" fill="#e9d6bd" font-family="Arial, sans-serif" font-size="25" letter-spacing="7">GATHER / PREVIEW 09</text>
+  <text x="82" y="635" fill="#e9d6bd" font-family="Georgia, serif" font-size="58" letter-spacing="2">FOLK / SOUNDS</text>
+</svg>

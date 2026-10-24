@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-label="Illustrated preview poster for FILM / FORUM">
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#392b33"/><stop offset="1" stop-color="#c67969"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#f0d0a1" stop-opacity=".68"/><stop offset="1" stop-color="#f0d0a1" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1200" height="750" fill="url(#bg)"/>
+  <circle cx="735" cy="335" r="390" fill="url(#glow)"/>
+  <path d="M-80 505 C 250 345, 580 795, 1280 295" fill="none" stroke="#f0d0a1" stroke-opacity=".54" stroke-width="110"/>
+  <path d="M-80 545 C 250 385, 580 835, 1280 335" fill="none" stroke="#392b33" stroke-opacity=".55" stroke-width="36"/>
+  <circle cx="665" cy="495" r="220" fill="none" stroke="#f0d0a1" stroke-opacity="0.1" stroke-width="1"/><circle cx="858" cy="646" r="83" fill="none" stroke="#f0d0a1" stroke-opacity="0.115" stroke-width="2"/><circle cx="1051" cy="197" r="126" fill="none" stroke="#f0d0a1" stroke-opacity="0.13" stroke-width="1"/><circle cx="244" cy="348" r="169" fill="none" stroke="#f0d0a1" stroke-opacity="0.14500000000000002" stroke-width="2"/><circle cx="437" cy="499" r="212" fill="none" stroke="#f0d0a1" stroke-opacity="0.16" stroke-width="1"/><circle cx="630" cy="650" r="75" fill="none" stroke="#f0d0a1" stroke-opacity="0.175" stroke-width="2"/><circle cx="823" cy="201" r="118" fill="none" stroke="#f0d0a1" stroke-opacity="0.19" stroke-width="1"/>
+  <rect x="48" y="48" width="1104" height="654" fill="none" stroke="#f0d0a1" stroke-opacity=".68"/>
+  <text x="82" y="104" fill="#f0d0a1" font-family="Arial, sans-serif" font-size="25" letter-spacing="7">GATHER / PREVIEW 05</text>
+  <text x="82" y="635" fill="#f0d0a1" font-family="Georgia, serif" font-size="58" letter-spacing="2">FILM / FORUM</text>
+</svg>

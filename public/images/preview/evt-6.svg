@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-label="Illustrated preview poster for BUILD / TOGETHER">
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#313f4c"/><stop offset="1" stop-color="#9f9a77"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#e9d9b0" stop-opacity=".68"/><stop offset="1" stop-color="#e9d9b0" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1200" height="750" fill="url(#bg)"/>
+  <circle cx="716" cy="348" r="390" fill="url(#glow)"/>
+  <path d="M-80 494 C 250 354, 580 782, 1280 312" fill="none" stroke="#e9d9b0" stroke-opacity=".54" stroke-width="115"/>
+  <path d="M-80 534 C 250 394, 580 822, 1280 352" fill="none" stroke="#313f4c" stroke-opacity=".55" stroke-width="36"/>
+  <circle cx="762" cy="574" r="71" fill="none" stroke="#e9d9b0" stroke-opacity="0.1" stroke-width="1"/><circle cx="955" cy="125" r="114" fill="none" stroke="#e9d9b0" stroke-opacity="0.115" stroke-width="2"/><circle cx="1148" cy="276" r="157" fill="none" stroke="#e9d9b0" stroke-opacity="0.13" stroke-width="1"/><circle cx="341" cy="427" r="200" fill="none" stroke="#e9d9b0" stroke-opacity="0.14500000000000002" stroke-width="2"/><circle cx="534" cy="578" r="243" fill="none" stroke="#e9d9b0" stroke-opacity="0.16" stroke-width="1"/><circle cx="727" cy="129" r="106" fill="none" stroke="#e9d9b0" stroke-opacity="0.175" stroke-width="2"/><circle cx="920" cy="280" r="149" fill="none" stroke="#e9d9b0" stroke-opacity="0.19" stroke-width="1"/>
+  <rect x="48" y="48" width="1104" height="654" fill="none" stroke="#e9d9b0" stroke-opacity=".68"/>
+  <text x="82" y="104" fill="#e9d9b0" font-family="Arial, sans-serif" font-size="25" letter-spacing="7">GATHER / PREVIEW 06</text>
+  <text x="82" y="635" fill="#e9d9b0" font-family="Georgia, serif" font-size="58" letter-spacing="2">BUILD / TOGETHER</text>
+</svg>

@@ -72,7 +72,7 @@ export function DiscoveryMap({
     if (!containerRef.current || mapRef.current) return
 
     try {
-      // Default view initialized at neutral center
+      // Default view initialized at neutral center (Mumbai region)
       const initialLat = activeLocation?.coordinates.latitude ?? 19.0760
       const initialLng = activeLocation?.coordinates.longitude ?? 72.8777
 
@@ -86,28 +86,46 @@ export function DiscoveryMap({
       // Add zoom control in top-right
       L.control.zoom({ position: 'topright' }).addTo(map)
 
-      // Add attribution in bottom-right
-      L.control
-        .attribution({ position: 'bottomright', prefix: false })
-        .addAttribution(apiKey
-          ? 'Powered by <a href="https://www.geoapify.com/" target="_blank" rel="noreferrer">Geoapify</a> | © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>'
-          : '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>')
-        .addTo(map)
+      // Choose tile provider: Geoapify if apiKey configured, otherwise CartoDB Voyager
+      if (apiKey) {
+        L.control
+          .attribution({ position: 'bottomright', prefix: false })
+          .addAttribution(
+            'Powered by <a href="https://www.geoapify.com/" target="_blank" rel="noreferrer">Geoapify</a> | © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>'
+          )
+          .addTo(map)
 
-      const tileUrl = apiKey
-        ? `https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=${apiKey}`
-        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+        const tileUrl = `https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=${apiKey}`
+        const tileLayer = L.tileLayer(tileUrl, {
+          maxZoom: 20,
+          subdomains: ['maps'],
+        })
 
-      const tileLayer = L.tileLayer(tileUrl, {
-        maxZoom: 20,
-        subdomains: apiKey ? ['maps'] : ['a', 'b', 'c'],
-      })
+        tileLayer.on('tileerror', () => {
+          setRuntimeMapError('Unable to load Geoapify map tiles. Please check your network or API key quota.')
+        })
 
-      tileLayer.on('tileerror', () => {
-        setRuntimeMapError('Unable to load map tiles. Please check your network connection.')
-      })
+        tileLayer.addTo(map)
+      } else {
+        // High-aesthetic warm fallback tiles: CartoDB Voyager (warm linen/cream tone)
+        L.control
+          .attribution({ position: 'bottomright', prefix: false })
+          .addAttribution(
+            '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>'
+          )
+          .addTo(map)
 
-      tileLayer.addTo(map)
+        const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+          maxZoom: 19,
+          subdomains: 'abcd',
+        })
+
+        tileLayer.on('tileerror', () => {
+          setRuntimeMapError('Unable to load map tiles. Please check your internet connection.')
+        })
+
+        tileLayer.addTo(map)
+      }
 
       const layerGroup = L.layerGroup().addTo(map)
 
@@ -180,11 +198,11 @@ export function DiscoveryMap({
       const radiusMeters = radiusKm * 1000
       const radiusCircle = L.circle(centerLatLng, {
         radius: radiusMeters,
-        color: '#1d5542',
+        color: '#9B5C44',
         weight: 1.5,
-        opacity: 0.6,
-        fillColor: '#edf5f1',
-        fillOpacity: 0.18,
+        opacity: 0.7,
+        fillColor: '#9B5C44',
+        fillOpacity: 0.08,
         dashArray: '5, 5',
       }).addTo(layerGroup)
 
@@ -238,6 +256,7 @@ export function DiscoveryMap({
             ${distanceBadge}
             ${event.price ? `<span class="popup-price">${event.price}</span>` : ''}
           </div>
+          <a class="popup-cta-link" href="#/user/event/${event.id}">View gathering &rarr;</a>
         </div>
       `
 

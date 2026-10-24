@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-label="Illustrated preview poster for AFTER / HOURS">
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#342b52"/><stop offset="1" stop-color="#a885bd"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#e5c5ae" stop-opacity=".68"/><stop offset="1" stop-color="#e5c5ae" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1200" height="750" fill="url(#bg)"/>
+  <circle cx="773" cy="309" r="390" fill="url(#glow)"/>
+  <path d="M-80 527 C 250 327, 580 821, 1280 261" fill="none" stroke="#e5c5ae" stroke-opacity=".54" stroke-width="100"/>
+  <path d="M-80 567 C 250 367, 580 861, 1280 301" fill="none" stroke="#342b52" stroke-opacity=".55" stroke-width="36"/>
+  <circle cx="471" cy="337" r="158" fill="none" stroke="#e5c5ae" stroke-opacity="0.1" stroke-width="1"/><circle cx="664" cy="488" r="201" fill="none" stroke="#e5c5ae" stroke-opacity="0.115" stroke-width="2"/><circle cx="857" cy="639" r="244" fill="none" stroke="#e5c5ae" stroke-opacity="0.13" stroke-width="1"/><circle cx="1050" cy="190" r="107" fill="none" stroke="#e5c5ae" stroke-opacity="0.14500000000000002" stroke-width="2"/><circle cx="243" cy="341" r="150" fill="none" stroke="#e5c5ae" stroke-opacity="0.16" stroke-width="1"/><circle cx="436" cy="492" r="193" fill="none" stroke="#e5c5ae" stroke-opacity="0.175" stroke-width="2"/><circle cx="629" cy="643" r="236" fill="none" stroke="#e5c5ae" stroke-opacity="0.19" stroke-width="1"/>
+  <rect x="48" y="48" width="1104" height="654" fill="none" stroke="#e5c5ae" stroke-opacity=".68"/>
+  <text x="82" y="104" fill="#e5c5ae" font-family="Arial, sans-serif" font-size="25" letter-spacing="7">GATHER / PREVIEW 03</text>
+  <text x="82" y="635" fill="#e5c5ae" font-family="Georgia, serif" font-size="58" letter-spacing="2">AFTER / HOURS</text>
+</svg>

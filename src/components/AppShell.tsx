@@ -1,58 +1,125 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { ArrowRightLeft, LogOut, MapPin, Moon, Settings, Sun } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { navigation, routeHref, type WorkspaceRoute } from '../features/workspace'
 
-export function AppShell({ route, children, userName, userEmail, userAvatar, userRole, onSignOut }: { route: WorkspaceRoute; children: ReactNode; userName: string | null; userEmail: string | null; userAvatar: string | null; userRole: 'attendee' | 'organizer'; onSignOut: () => void }) {
-  const pageNumber = navigation.findIndex((item) => item.id === route.section) + 1
-  const nextMode = route.mode === 'user' ? 'organizer' : 'user'
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => localStorage.getItem('gather-theme') === 'dark' ? 'dark' : 'light')
-  useEffect(() => { localStorage.setItem('gather-theme', theme) }, [theme])
+export function AppShell({ route, children }: { route: WorkspaceRoute; children: ReactNode }) {
+  const isOrganizer = route.mode === 'organizer'
 
   return (
-    <div className={`app-shell theme-${theme}`}>
-      <a className="skip-link" href="#workspace-content" onClick={(event) => {
-        event.preventDefault()
-        document.getElementById('workspace-content')?.focus()
-      }}>Skip to content</a>
-      <header className="club-header">
-        <a className="wordmark" href={routeHref({ mode: route.mode, section: 'happening-events' })} aria-label="Gather Club home">
-          gather<span>club</span>
-        </a>
-        <nav className="section-navigation" aria-label="Sections">
-          {navigation.map(({ id, label }) => (
-            <a className={`navigation-link ${route.section === id ? 'is-active' : ''}`} key={id}
-              href={routeHref({ mode: route.mode, section: id })} aria-current={route.section === id ? 'page' : undefined}>
-              <span>{label}</span>
+    <div className={`app-shell ${isOrganizer ? 'organizer-shell' : 'attendee-shell'}`}>
+      <a
+        className="skip-link"
+        href="#workspace-content"
+        onClick={(event) => {
+          event.preventDefault()
+          document.getElementById('workspace-content')?.focus()
+        }}
+      >
+        Skip to content
+      </a>
+
+      {isOrganizer ? (
+        /* Dedicated Organizer Sidebar Navigation */
+        <aside className="sidebar organizer-sidebar" aria-label="Organizer navigation">
+          <div className="organizer-sidebar-header">
+            <a
+              className="wordmark"
+              href={routeHref({ mode: 'organizer', section: 'my-events' })}
+              aria-label="Gather home"
+            >
+              gather
             </a>
-          ))}
-        </nav>
-        <div className="header-actions">
-          <span className="city-label"><MapPin size={15} aria-hidden="true" /> Mumbai</span>
-          {route.mode === 'organizer' ? <a className="host-action" href="#/organizer/create">Create gathering <span aria-hidden="true">↗</span></a> : null}
-          <details className="settings-menu">
-            <summary aria-label="Settings" title="Settings"><Settings size={19} strokeWidth={1.7} /></summary>
-            <div className="settings-popover">
-              <p>Gather Club settings</p>
-              <div className="settings-profile">{userAvatar ? <img src={userAvatar} alt="" /> : <span>{(userName ?? 'G').slice(0, 1).toUpperCase()}</span>}<div><strong>{userName ?? 'Gather member'}</strong><small>{userRole === 'organizer' ? 'Organizer' : 'Attendee'}</small><small>{userEmail}</small></div></div>
-              <a href={routeHref({ ...route, mode: nextMode })}>
-                <ArrowRightLeft size={16} aria-hidden="true" />
-                Switch to {nextMode === 'organizer' ? 'organizer' : 'attendee'}
+            <span className="organizer-badge">Organizer</span>
+          </div>
+
+          <nav className="organizer-nav" aria-label="Organizer sections">
+            {navigation.map(({ id, label, icon: Icon }) => (
+              <a
+                className={`organizer-nav-link ${route.section === id && !route.create && !route.editId && !route.eventId ? 'is-active' : ''}`}
+                key={id}
+                href={routeHref({ mode: 'organizer', section: id })}
+                aria-current={route.section === id ? 'page' : undefined}
+              >
+                <Icon aria-hidden="true" size={19} strokeWidth={1.8} />
+                <span>{label}</span>
               </a>
-              <small>Change how you use the club.</small>
-              <button type="button" className="theme-toggle" aria-pressed={theme === 'dark'} onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')}>
-                {theme === 'dark' ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
-                Use {theme === 'dark' ? 'light' : 'dark'} theme
-              </button>
-              <button type="button" onClick={onSignOut}><LogOut size={15} aria-hidden="true" />Sign out</button>
+            ))}
+          </nav>
+
+          <div className="organizer-sidebar-footer">
+            <nav className="mode-switch in-sidebar" aria-label="Switch between attendee and organizer">
+              {(['user', 'organizer'] as const).map((mode) => (
+                <a
+                  key={mode}
+                  className={`mode-link ${route.mode === mode ? 'is-selected' : ''}`}
+                  href={routeHref({ ...route, mode })}
+                  aria-current={route.mode === mode ? 'true' : undefined}
+                >
+                  {mode === 'user' ? 'Attendee' : 'Organizer'}
+                </a>
+              ))}
+            </nav>
+            <p className="sidebar-note">Made for getting together.</p>
+          </div>
+        </aside>
+      ) : (
+        /* Compact Attendee Top Navigation Bar */
+        <header className="attendee-top-nav" aria-label="Gather navigation">
+          <div className="attendee-nav-inner">
+            <div className="attendee-nav-left">
+              <a
+                className="wordmark"
+                href={routeHref({ mode: 'user', section: 'happening-events' })}
+                aria-label="Gather home"
+              >
+                gather
+              </a>
+              <span className="brand-tagline">City Guide</span>
             </div>
-          </details>
-        </div>
-      </header>
-      <main id="workspace-content" className="workspace-content" tabIndex={-1}>{children}</main>
-      <footer className="workspace-footer" aria-label={`Section ${pageNumber} of ${navigation.length}`}>
-        <span>Gather Club <i aria-hidden="true">·</i> Made for getting together</span>
-        <span aria-hidden="true">0{pageNumber}<span className="page-divider">/</span>0{navigation.length}</span>
-      </footer>
+
+            <nav className="attendee-nav-links" aria-label="Attendee sections">
+              {navigation.map(({ id, label, icon: Icon }) => (
+                <a
+                  className={`attendee-nav-link ${route.section === id && !route.eventId ? 'is-active' : ''}`}
+                  key={id}
+                  href={routeHref({ mode: 'user', section: id })}
+                  aria-current={route.section === id && !route.eventId ? 'page' : undefined}
+                >
+                  <Icon aria-hidden="true" size={16} strokeWidth={1.8} />
+                  <span>{label}</span>
+                </a>
+              ))}
+            </nav>
+
+            <div className="attendee-nav-right">
+              <nav className="mode-switch" aria-label="Switch between attendee and organizer">
+                {(['user', 'organizer'] as const).map((mode) => (
+                  <a
+                    key={mode}
+                    className={`mode-link ${route.mode === mode ? 'is-selected' : ''}`}
+                    href={routeHref({ ...route, mode })}
+                    aria-current={route.mode === mode ? 'true' : undefined}
+                  >
+                    {mode === 'user' ? 'Attendee' : 'Organizer'}
+                  </a>
+                ))}
+              </nav>
+            </div>
+          </div>
+        </header>
+      )}
+
+      <div className={`workspace ${isOrganizer ? 'organizer-workspace' : 'attendee-workspace'}`}>
+        <main id="workspace-content" className={isOrganizer ? 'workspace-content' : 'attendee-workspace-content'} tabIndex={-1}>
+          {children}
+        </main>
+        <footer className="workspace-footer">
+          <div className="footer-content">
+            <span className="footer-brand">gather</span>
+            <span className="footer-dot">&middot;</span>
+            <span>A curated city guide &amp; event workspace</span>
+          </div>
+        </footer>
+      </div>
     </div>
   )
 }

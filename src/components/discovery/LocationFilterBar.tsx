@@ -14,11 +14,131 @@ interface LocationFilterBarProps {
   gpsStatus: GpsStatus
   gpsErrorMessage: string | null
   onNearMeClick: () => void
-  radiusKm: number
-  onChangeRadius: (radius: number) => void
+  radiusKm?: number
+  onChangeRadius?: (radius: number) => void
+  showRadius?: boolean
 }
 
 const RADIUS_OPTIONS = [5, 10, 25]
+
+export function RadiusSelector({
+  radiusKm,
+  onChangeRadius,
+}: {
+  radiusKm: number
+  onChangeRadius: (radius: number) => void
+}) {
+  const [isCustomRadiusOpen, setIsCustomRadiusOpen] = useState(false)
+  const [customRadiusInput, setCustomRadiusInput] = useState('')
+  const [customRadiusError, setCustomRadiusError] = useState<string | null>(null)
+
+  const handleToggleCustomRadius = () => {
+    if (!isCustomRadiusOpen) {
+      setCustomRadiusInput(radiusKm.toString())
+      setCustomRadiusError(null)
+    }
+    setIsCustomRadiusOpen(!isCustomRadiusOpen)
+  }
+
+  const handleCustomRadiusSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const trimmed = customRadiusInput.trim()
+    if (!trimmed) {
+      setCustomRadiusError('Please enter a distance in kilometres.')
+      return
+    }
+    const parsed = parseFloat(trimmed)
+    if (isNaN(parsed)) {
+      setCustomRadiusError('Please enter a valid numeric value.')
+      return
+    }
+    if (parsed <= 0) {
+      setCustomRadiusError('Radius must be greater than 0 km.')
+      return
+    }
+    if (parsed > 500) {
+      setCustomRadiusError('Maximum radius is 500 km.')
+      return
+    }
+
+    setCustomRadiusError(null)
+    onChangeRadius(parsed)
+    setIsCustomRadiusOpen(false)
+  }
+
+  return (
+    <div className="radius-filter-group">
+      <div className="radius-selector" role="radiogroup" aria-label="Distance radius">
+        <span className="radius-label">Radius:</span>
+        {RADIUS_OPTIONS.map((radius) => (
+          <button
+            key={radius}
+            type="button"
+            className={`radius-pill ${radiusKm === radius && !isCustomRadiusOpen ? 'is-selected' : ''}`}
+            onClick={() => {
+              setIsCustomRadiusOpen(false)
+              setCustomRadiusError(null)
+              onChangeRadius(radius)
+            }}
+            role="radio"
+            aria-checked={radiusKm === radius && !isCustomRadiusOpen}
+          >
+            {radius} km
+          </button>
+        ))}
+        <button
+          type="button"
+          className={`radius-pill ${
+            !RADIUS_OPTIONS.includes(radiusKm) || isCustomRadiusOpen ? 'is-selected' : ''
+          }`}
+          onClick={handleToggleCustomRadius}
+        >
+          {!RADIUS_OPTIONS.includes(radiusKm) ? `${radiusKm} km (Custom)` : 'Custom'}
+        </button>
+      </div>
+
+      {/* Custom Radius Input Modal/Bar */}
+      {isCustomRadiusOpen && (
+        <form onSubmit={handleCustomRadiusSubmit} className="custom-radius-form">
+          <label htmlFor="custom-radius-input">Custom radius (km):</label>
+          <input
+            id="custom-radius-input"
+            type="number"
+            min="1"
+            max="500"
+            step="1"
+            placeholder="e.g. 15"
+            value={customRadiusInput}
+            onChange={(e) => {
+              setCustomRadiusInput(e.target.value)
+              if (customRadiusError) setCustomRadiusError(null)
+            }}
+            className="custom-radius-input"
+            autoFocus
+          />
+          <button type="submit" className="custom-radius-apply">
+            Apply
+          </button>
+          <button
+            type="button"
+            className="custom-radius-cancel"
+            onClick={() => {
+              setIsCustomRadiusOpen(false)
+              setCustomRadiusError(null)
+            }}
+          >
+            Cancel
+          </button>
+          {customRadiusError && (
+            <span className="custom-radius-error" role="alert">
+              {customRadiusError}
+            </span>
+          )}
+        </form>
+      )}
+    </div>
+  )
+}
 
 export function LocationFilterBar({
   activeLocation,
@@ -27,8 +147,9 @@ export function LocationFilterBar({
   gpsStatus,
   gpsErrorMessage,
   onNearMeClick,
-  radiusKm,
+  radiusKm = 10,
   onChangeRadius,
+  showRadius = true,
 }: LocationFilterBarProps) {
   const [typedQuery, setTypedQuery] = useState<string | null>(null)
   const [prevActiveLocation, setPrevActiveLocation] = useState(activeLocation)
@@ -37,10 +158,7 @@ export function LocationFilterBar({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isApiKeyMissing, setIsApiKeyMissing] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
-  const [isCustomRadiusOpen, setIsCustomRadiusOpen] = useState(false)
-  const [customRadiusInput, setCustomRadiusInput] = useState('')
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1)
-  const [customRadiusError, setCustomRadiusError] = useState<string | null>(null)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -163,40 +281,6 @@ export function LocationFilterBar({
     setSearchError(null)
     setHighlightedIndex(-1)
     onClearLocation()
-  }
-
-  const handleToggleCustomRadius = () => {
-    if (!isCustomRadiusOpen) {
-      setCustomRadiusInput(radiusKm.toString())
-      setCustomRadiusError(null)
-    }
-    setIsCustomRadiusOpen(!isCustomRadiusOpen)
-  }
-
-  const handleCustomRadiusSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const trimmed = customRadiusInput.trim()
-    if (!trimmed) {
-      setCustomRadiusError('Please enter a distance in kilometres.')
-      return
-    }
-    const parsed = parseFloat(trimmed)
-    if (isNaN(parsed)) {
-      setCustomRadiusError('Please enter a valid numeric value.')
-      return
-    }
-    if (parsed <= 0) {
-      setCustomRadiusError('Radius must be greater than 0 km.')
-      return
-    }
-    if (parsed > 500) {
-      setCustomRadiusError('Maximum radius is 500 km.')
-      return
-    }
-
-    setCustomRadiusError(null)
-    onChangeRadius(parsed)
-    setIsCustomRadiusOpen(false)
   }
 
   const isNearMeActive = Boolean(activeLocation?.isGps)
@@ -324,76 +408,11 @@ export function LocationFilterBar({
           <span>{gpsStatus === 'locating' ? 'Locating...' : 'Near me'}</span>
         </button>
 
-        {/* Radius Selector */}
-        <div className="radius-selector" role="radiogroup" aria-label="Distance radius">
-          <span className="radius-label">Radius:</span>
-          {RADIUS_OPTIONS.map((radius) => (
-            <button
-              key={radius}
-              type="button"
-              className={`radius-pill ${radiusKm === radius && !isCustomRadiusOpen ? 'is-selected' : ''}`}
-              onClick={() => {
-                setIsCustomRadiusOpen(false)
-                setCustomRadiusError(null)
-                onChangeRadius(radius)
-              }}
-              role="radio"
-              aria-checked={radiusKm === radius && !isCustomRadiusOpen}
-            >
-              {radius} km
-            </button>
-          ))}
-          <button
-            type="button"
-            className={`radius-pill ${
-              !RADIUS_OPTIONS.includes(radiusKm) || isCustomRadiusOpen ? 'is-selected' : ''
-            }`}
-            onClick={handleToggleCustomRadius}
-          >
-            {!RADIUS_OPTIONS.includes(radiusKm) ? `${radiusKm} km (Custom)` : 'Custom'}
-          </button>
-        </div>
+        {/* Optional inline Radius Selector if not rendered in secondary filters */}
+        {showRadius && onChangeRadius && (
+          <RadiusSelector radiusKm={radiusKm} onChangeRadius={onChangeRadius} />
+        )}
       </div>
-
-      {/* Custom Radius Input Modal/Bar */}
-      {isCustomRadiusOpen && (
-        <form onSubmit={handleCustomRadiusSubmit} className="custom-radius-form">
-          <label htmlFor="custom-radius-input">Custom radius (km):</label>
-          <input
-            id="custom-radius-input"
-            type="number"
-            min="1"
-            max="500"
-            step="1"
-            placeholder="e.g. 15"
-            value={customRadiusInput}
-            onChange={(e) => {
-              setCustomRadiusInput(e.target.value)
-              if (customRadiusError) setCustomRadiusError(null)
-            }}
-            className="custom-radius-input"
-            autoFocus
-          />
-          <button type="submit" className="custom-radius-apply">
-            Apply
-          </button>
-          <button
-            type="button"
-            className="custom-radius-cancel"
-            onClick={() => {
-              setIsCustomRadiusOpen(false)
-              setCustomRadiusError(null)
-            }}
-          >
-            Cancel
-          </button>
-          {customRadiusError && (
-            <span className="custom-radius-error" role="alert">
-              {customRadiusError}
-            </span>
-          )}
-        </form>
-      )}
 
       {/* GPS Denial / Error Alert */}
       {gpsErrorMessage && (

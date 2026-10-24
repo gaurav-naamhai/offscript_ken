@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-label="Illustrated preview poster for OPEN / SOURCE">
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#2b3656"/><stop offset="1" stop-color="#729fc1"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#ddd8c9" stop-opacity=".68"/><stop offset="1" stop-color="#ddd8c9" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1200" height="750" fill="url(#bg)"/>
+  <circle cx="697" cy="361" r="390" fill="url(#glow)"/>
+  <path d="M-80 483 C 250 363, 580 769, 1280 329" fill="none" stroke="#ddd8c9" stroke-opacity=".54" stroke-width="120"/>
+  <path d="M-80 523 C 250 403, 580 809, 1280 369" fill="none" stroke="#2b3656" stroke-opacity=".55" stroke-width="36"/>
+  <circle cx="859" cy="653" r="102" fill="none" stroke="#ddd8c9" stroke-opacity="0.1" stroke-width="1"/><circle cx="1052" cy="204" r="145" fill="none" stroke="#ddd8c9" stroke-opacity="0.115" stroke-width="2"/><circle cx="245" cy="355" r="188" fill="none" stroke="#ddd8c9" stroke-opacity="0.13" stroke-width="1"/><circle cx="438" cy="506" r="231" fill="none" stroke="#ddd8c9" stroke-opacity="0.14500000000000002" stroke-width="2"/><circle cx="631" cy="657" r="94" fill="none" stroke="#ddd8c9" stroke-opacity="0.16" stroke-width="1"/><circle cx="824" cy="208" r="137" fill="none" stroke="#ddd8c9" stroke-opacity="0.175" stroke-width="2"/><circle cx="1017" cy="359" r="180" fill="none" stroke="#ddd8c9" stroke-opacity="0.19" stroke-width="1"/>
+  <rect x="48" y="48" width="1104" height="654" fill="none" stroke="#ddd8c9" stroke-opacity=".68"/>
+  <text x="82" y="104" fill="#ddd8c9" font-family="Arial, sans-serif" font-size="25" letter-spacing="7">GATHER / PREVIEW 07</text>
+  <text x="82" y="635" fill="#ddd8c9" font-family="Georgia, serif" font-size="58" letter-spacing="2">OPEN / SOURCE</text>
+</svg>
