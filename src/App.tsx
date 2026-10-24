@@ -3,6 +3,9 @@ import { CalendarDays, Check, Download, FileDown, MapPin, Plus, Search, Users } 
 import { AppShell } from './components/AppShell'
 import { EventCard } from './components/EventCard'
 import { EventForm } from './components/EventForm'
+import { HappeningEventsView } from './components/discovery/HappeningEventsView'
+import { SAMPLE_EVENTS } from './features/events/sampleEvents'
+import type { GatherEvent } from './types/event'
 import { EventProvider, useEvents, type EventRecord } from './features/events'
 import { activeGuests, dateLabel, eventGuests, guestStatus } from './features/event-utils'
 import { createHref, editHref, eventHref, getRoute, routeHref, type SectionId, type WorkspaceRoute } from './features/workspace'
@@ -19,6 +22,8 @@ const sectionCopy: Record<'user' | 'organizer', Record<SectionId, { title: strin
     calendar: { title: 'Calendar', subtitle: 'Give your gatherings a place to grow.' },
   },
 }
+
+
 
 function App() {
   return <EventProvider><GatherApp /></EventProvider>
@@ -52,16 +57,35 @@ function Workspace({ route }: { route: WorkspaceRoute }) {
 }
 
 function HappeningEvents({ mode }: { mode: 'user' | 'organizer' }) {
-  const { events, guests, savedIds, toggleSaved } = useEvents()
+  const { events, guests, savedIds } = useEvents()
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All categories')
   const published = events.filter((event) => event.status === 'published' && event.visibility === 'public')
+
+  if (mode === 'user') {
+    const liveEvents: GatherEvent[] = published.map((e) => ({
+      id: e.id,
+      title: e.title,
+      description: e.description,
+      category: e.category,
+      startDateTime: `${e.startDate}T${e.startTime || '00:00'}:00`,
+      endDateTime: e.endDate ? `${e.endDate}T${e.endTime || '00:00'}:00` : undefined,
+      venueName: e.location || 'Location to be announced',
+      address: e.location || 'Location to be announced',
+      latitude: null,
+      longitude: null,
+      imageUrl: e.imageUrl,
+    }))
+    const discoveryEvents = liveEvents.length ? [...liveEvents, ...SAMPLE_EVENTS] : SAMPLE_EVENTS
+    return <HappeningEventsView events={discoveryEvents} />
+  }
+
   const categories = ['All categories', ...Array.from(new Set(published.map((event) => event.category)))]
   const shown = published.filter((event) => `${event.title} ${event.description} ${event.location}`.toLowerCase().includes(query.toLowerCase()) && (category === 'All categories' || event.category === category))
   if (!events.length && mode === 'organizer') return <EmptyPanel title="Your first event starts here." description="Create it once, publish when you are ready, and it will appear for attendees here." action="Create event" href={createHref} />
-  if (!published.length) return <><DiscoveryHero /><EmptyPanel title="Nothing is happening yet." description={mode === 'user' ? 'Come back once an organizer publishes an event.' : 'Publish one of your drafts to make it discoverable.'} action={mode === 'organizer' ? 'Go to My Events' : undefined} href={mode === 'organizer' ? routeHref({ mode, section: 'my-events' }) : undefined} /></>
+  if (!published.length) return <><DiscoveryHero /><EmptyPanel title="Nothing is happening yet." description="Publish one of your drafts to make it discoverable." action="Go to My Events" href={routeHref({ mode, section: 'my-events' })} /></>
   const feature = shown[0]
-  return <div className="event-index"><DiscoveryHero event={feature} mode={mode} /><div className="discover-tools"><label className="search-field"><Search size={19} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search events, artists, or places" /></label><select aria-label="Filter by category" value={category} onChange={(e) => setCategory(e.target.value)}>{categories.map((item) => <option key={item}>{item}</option>)}</select></div>{shown.length ? <div className="event-grid">{shown.map((event) => <EventCard key={event.id} event={event} mode={mode} saved={savedIds.includes(event.id)} guestCount={activeGuests(guests, event.id).length} onSave={mode === 'user' ? () => { void toggleSaved(event.id) } : undefined} />)}</div> : <EmptyPanel title="No matches yet." description="Try a different search or category." />}</div>
+  return <div className="event-index"><DiscoveryHero event={feature} mode={mode} /><div className="discover-tools"><label className="search-field"><Search size={19} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search events, artists, or places" /></label><select aria-label="Filter by category" value={category} onChange={(e) => setCategory(e.target.value)}>{categories.map((item) => <option key={item}>{item}</option>)}</select></div>{shown.length ? <div className="event-grid">{shown.map((event) => <EventCard key={event.id} event={event} mode={mode} saved={savedIds.includes(event.id)} guestCount={activeGuests(guests, event.id).length} onSave={undefined} />)}</div> : <EmptyPanel title="No matches yet." description="Try a different search or category." />}</div>
 }
 
 function MyEvents({ mode }: { mode: 'user' | 'organizer' }) {
