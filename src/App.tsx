@@ -11,6 +11,7 @@ import {
   Users,
   Bookmark,
   ArrowLeft,
+  ArrowUpRight,
   Clock,
   Sparkles,
   ShieldCheck,
@@ -20,6 +21,7 @@ import {
 import { AppShell } from './components/AppShell'
 import { EventCard } from './components/EventCard'
 import { EventForm } from './components/EventForm'
+import { EventVenueMap } from './components/EventVenueMap'
 import { HappeningEventsView } from './components/discovery/HappeningEventsView'
 import { SAMPLE_EVENTS } from './features/events/sampleEvents'
 import type { GatherEvent } from './types/event'
@@ -63,6 +65,10 @@ function sampleToRecord(sample: GatherEvent): EventRecord {
     startTime: isNaN(start.getTime()) ? '10:00' : clock(start),
     endTime: end && !isNaN(end.getTime()) ? clock(end) : '',
     location: sample.venueName ? `${sample.venueName}, ${sample.address}` : sample.address,
+    venueName: sample.venueName,
+    address: sample.address,
+    latitude: typeof sample.latitude === 'number' ? sample.latitude : null,
+    longitude: typeof sample.longitude === 'number' ? sample.longitude : null,
     category: sample.category,
     capacity: 40,
     visibility: 'public',
@@ -204,10 +210,10 @@ function HappeningEvents({ mode }: { mode: 'user' | 'organizer' }) {
       category: e.category,
       startDateTime: `${e.startDate}T${e.startTime || '00:00'}:00`,
       endDateTime: e.endDate ? `${e.endDate}T${e.endTime || '00:00'}:00` : undefined,
-      venueName: e.location || 'Location to be announced',
-      address: e.location || 'Location to be announced',
-      latitude: null,
-      longitude: null,
+      venueName: e.venueName || e.location || 'Location to be announced',
+      address: e.address || e.location || 'Location to be announced',
+      latitude: typeof e.latitude === 'number' ? e.latitude : null,
+      longitude: typeof e.longitude === 'number' ? e.longitude : null,
       imageUrl: e.imageUrl || '/images/moonlit-studio.png',
       isSample: false,
     }))
@@ -653,6 +659,52 @@ function EventDetail({
                 <dd>{event.visibility === 'public' ? 'Public gathering' : 'Private invitation'}</dd>
               </div>
             </dl>
+          </div>
+
+          {/* Exact Venue Location Map */}
+          <div className="detail-panel venue-map-panel">
+            <div className="venue-map-panel-header">
+              <div className="venue-header-text">
+                <h2 className="panel-title">Venue &amp; Location</h2>
+                <p className="venue-subtitle">
+                  <MapPin size={15} className="venue-pin-icon" aria-hidden="true" />
+                  <span>
+                    {event.venueName
+                      ? `${event.venueName}${event.address ? ` · ${event.address}` : ''}`
+                      : event.location || 'Location to be announced'}
+                  </span>
+                </p>
+              </div>
+              {((typeof event.latitude === 'number' && typeof event.longitude === 'number') ||
+                (event.location &&
+                  !event.location.toLowerCase().includes('online') &&
+                  !event.location.toLowerCase().includes('virtual'))) && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    typeof event.latitude === 'number' && typeof event.longitude === 'number'
+                      ? `${event.latitude},${event.longitude}`
+                      : event.address
+                      ? `${event.venueName ? `${event.venueName}, ` : ''}${event.address}`
+                      : event.location
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="venue-directions-btn"
+                  aria-label="Open in Google Maps"
+                >
+                  <span>Open in Maps</span>
+                  <ArrowUpRight size={14} aria-hidden="true" />
+                </a>
+              )}
+            </div>
+            <EventVenueMap
+              venueName={event.venueName}
+              address={event.address}
+              location={event.location}
+              latitude={event.latitude}
+              longitude={event.longitude}
+              title={event.title}
+            />
           </div>
 
           {(event.hostName || event.hostBio) && <div className="detail-panel info-panel"><h2 className="panel-title">Hosted by</h2><p><strong>{event.hostName || 'Gather community'}</strong></p>{event.hostBio && <p className="detail-description">{event.hostBio}</p>}</div>}
