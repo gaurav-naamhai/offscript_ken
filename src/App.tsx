@@ -110,7 +110,7 @@ function GatherApp() {
     : sectionCopy[route.mode][route.section].title
 
   useEffect(() => {
-    document.title = `${label} · ${route.mode === 'user' ? 'City Guide' : 'Organizer'} · Gather`
+    document.title = `${label} · ${route.mode === 'user' ? 'City Guide' : 'Organizer'} · Gather Club`
   }, [label, route.mode])
 
   return (
@@ -481,7 +481,9 @@ function EventDetail({
   isSample?: boolean
 }) {
   const { guests, savedIds, toggleSaved, rsvp, setStatus, setGuestStatus, checkIn, userId, previewSavedIds, previewGuests, togglePreviewSaved, rsvpToPreview } = useEvents()
+  const [attendeeName, setAttendeeName] = useState('')
   const [attendeeEmail, setAttendeeEmail] = useState('')
+  const [registrationOpen, setRegistrationOpen] = useState(false)
   const [rsvpFeedback, setRsvpFeedback] = useState<string | null>(null)
   const [shareFeedback, setShareFeedback] = useState<string | null>(null)
   const [sendingReminder, setSendingReminder] = useState(false)
@@ -520,14 +522,14 @@ function EventDetail({
     const targetStatus = full || event.registration === 'approval' ? 'requested' : 'going'
     try {
       if (isSample) rsvpToPreview(event, targetStatus)
-      else await rsvp(event, targetStatus, attendeeEmail || undefined)
+      else await rsvp(event, targetStatus, { name: attendeeName, email: attendeeEmail })
       setRsvpFeedback(
         targetStatus === 'going'
-          ? isSample ? 'Saved on this device — you’re going!' : 'Confirmed! You are on the attendee list.'
+          ? isSample ? 'Saved on this device — you’re going!' : 'Registration confirmed! A confirmation email is on its way.'
           : full ? 'You are on the waitlist. The organizer can approve you when a spot opens.' : 'Request submitted to the organizer.'
       )
-    } catch {
-      setRsvpFeedback('We could not complete your RSVP. Please try again.')
+    } catch (error) {
+      setRsvpFeedback(error instanceof Error ? error.message : 'We could not complete your registration. Please try again.')
     }
   }
 
@@ -641,7 +643,7 @@ function EventDetail({
                       ? 'Approval required'
                       : event.registration === 'closed'
                       ? 'Registration closed'
-                      : 'Open RSVP'}
+                      : 'Open registration'}
                   </strong>
                 </div>
               </div>
@@ -672,7 +674,7 @@ function EventDetail({
                     ? 'Request to join (organizer approval)'
                     : event.registration === 'closed'
                     ? 'Registration closed'
-                    : 'Open RSVP'}
+                    : 'Open registration'}
                 </dd>
               </div>
               <div className="meta-pair">
@@ -734,7 +736,7 @@ function EventDetail({
 
           {(event.hostName || event.hostBio) && <div className="detail-panel info-panel"><h2 className="panel-title">Hosted by</h2><p><strong>{event.hostName || 'Gather community'}</strong></p>{event.hostBio && <p className="detail-description">{event.hostBio}</p>}</div>}
           {(event.agenda?.length ?? 0) > 0 && <div className="detail-panel info-panel"><h2 className="panel-title">Agenda</h2><ol className="agenda-list">{event.agenda?.map((item, index) => <li key={`${item.time}-${index}`}><time>{item.time}</time><span>{item.title}</span></li>)}</ol></div>}
-          {(event.registrationQuestions?.length ?? 0) > 0 && <div className="detail-panel info-panel"><h2 className="panel-title">Before you RSVP</h2><ul className="registration-question-list">{event.registrationQuestions?.map((question) => <li key={question}>{question}</li>)}</ul></div>}
+          {(event.registrationQuestions?.length ?? 0) > 0 && <div className="detail-panel info-panel"><h2 className="panel-title">Before you register</h2><ul className="registration-question-list">{event.registrationQuestions?.map((question) => <li key={question}>{question}</li>)}</ul></div>}
 
           {/* Organizer Guest Panel */}
           {organizer && (
@@ -752,9 +754,9 @@ function EventDetail({
         </div>
 
         {/* Right Column: Quick Action Box & Status */}
-        <aside className="detail-action-sidebar" aria-label="Event actions and RSVP">
+        <aside className="detail-action-sidebar" aria-label="Event actions and registration">
           <div className="quick-action-card">
-            <h2 className="quick-action-heading">Event Details & RSVP</h2>
+            <h2 className="quick-action-heading">Event details & registration</h2>
 
             <div className="quick-meta-list">
               <div className="quick-meta-item">
@@ -854,27 +856,45 @@ function EventDetail({
             ) : (
               /* Attendee Actions */
               <div className="attendee-action-stack">
-                {/* RSVP Flow */}
+                {/* Registration flow */}
                 {event.status === 'published' && event.registration !== 'closed' && (!full || !currentStatus) ? (
                   <div className="rsvp-control-group">
-                    {currentStatus !== 'going' && currentStatus !== 'requested' ? (
+                    {!registrationOpen && currentStatus !== 'going' && currentStatus !== 'requested' ? (
+                      <button type="button" className="button button-primary rsvp-submit-btn" onClick={() => { setRegistrationOpen(true); setRsvpFeedback(null) }}>
+                        <Check size={18} aria-hidden="true" />
+                        <span>{full ? 'Join waitlist' : event.registration === 'approval' ? 'Register to request access' : 'Register for this event'}</span>
+                      </button>
+                    ) : currentStatus !== 'going' && currentStatus !== 'requested' ? (
                       <>
+                        <label htmlFor="registration-name" className="rsvp-input-label">
+                          Full name
+                        </label>
+                        <input
+                          id="registration-name"
+                          type="text"
+                          autoComplete="name"
+                          className="rsvp-email-input"
+                          placeholder="Your name"
+                          value={attendeeName}
+                          onChange={(e) => setAttendeeName(e.target.value)}
+                          aria-label="Your full name"
+                        />
                         <label htmlFor="rsvp-email" className="rsvp-input-label">
-                          Email for updates (if available):
+                          Email address
                         </label>
                         <input
                           id="rsvp-email"
                           type="email"
                           className="rsvp-email-input"
-                          placeholder="Your email address"
+                          placeholder="name@example.com"
                           value={attendeeEmail}
                           onChange={(e) => setAttendeeEmail(e.target.value)}
-                          aria-label="Email for reminders"
+                          aria-label="Your email address"
                         />
                       </>
                     ) : null}
 
-                    <button
+                    {registrationOpen || currentStatus === 'going' || currentStatus === 'requested' ? <button
                       type="button"
                       className="button button-primary rsvp-submit-btn"
                       onClick={() => {
@@ -893,9 +913,9 @@ function EventDetail({
                       ) : event.registration === 'approval' ? (
                         <span>Request to join</span>
                       ) : (
-                        <span>RSVP for this gathering</span>
+                        <span>Confirm registration</span>
                       )}
-                    </button>
+                    </button> : null}
 
                     {rsvpFeedback && (
                       <p className="rsvp-feedback-msg" role="status">
@@ -955,7 +975,7 @@ function EventDetail({
                       <QRCodeSVG value={`gather:${event.id}:${isSample ? 'local-preview-guest' : userId ?? 'guest'}`} size={112} level="M" includeMargin />
                       <div><strong><Ticket size={16} aria-hidden="true" /> Check-in pass</strong><span>Show this code at the door.</span></div>
                     </div>
-                    <button type="button" className="text-button cancel-rsvp-button" onClick={() => { void handleCancellation() }}>Can’t make it? Cancel RSVP</button>
+                    <button type="button" className="text-button cancel-rsvp-button" onClick={() => { void handleCancellation() }}>Can’t make it? Cancel registration</button>
                   </>
                 )}
               </div>
@@ -972,7 +992,7 @@ function EventDetail({
                     ? 'Your request is with the organizer. It will remain in My Events while you await approval.'
                     : full
                     ? 'This event is currently at full capacity.'
-                    : 'RSVP to reserve your place or save for later.'}
+                    : 'Register to reserve your place or save for later.'}
                 </p>
               </div>
             )}
@@ -980,7 +1000,7 @@ function EventDetail({
         </aside>
       </div>
 
-      {/* Mobile Sticky Bottom RSVP Action Bar */}
+      {/* Mobile sticky registration action bar */}
       {mode === 'user' && event.status === 'published' && !full && event.registration !== 'closed' && (
         <div className="mobile-sticky-action-bar" aria-label="Mobile quick actions">
           <div className="mobile-action-summary">
@@ -991,10 +1011,11 @@ function EventDetail({
             type="button"
             className="button button-primary mobile-rsvp-btn"
             onClick={() => {
-              void handleRsvpSubmit()
+              if (!registrationOpen && !currentStatus) setRegistrationOpen(true)
+              else void handleRsvpSubmit()
             }}
           >
-            {currentStatus === 'going' ? 'Going' : currentStatus === 'requested' ? 'Requested' : 'RSVP'}
+            {currentStatus === 'going' ? 'Registered' : currentStatus === 'requested' ? 'Requested' : registrationOpen ? 'Confirm registration' : 'Register'}
           </button>
         </div>
       )}

@@ -4,8 +4,15 @@ type EventRow = { id: string; owner_id: string; title: string; description: stri
 type RegistrationRow = { event_id: string; user_id: string; attendee_name: string; attendee_email: string; registration_status: 'pending' | 'approved' | 'rejected' | 'cancelled'; updated_at: string }
 type DeliveryKind = 'registration_pending' | 'registration_approved' | 'registration_rejected' | 'event_update' | 'cancellation' | 'reminder'
 type Action = 'registration_submitted' | 'registration_decision' | 'event_update' | 'event_cancel' | 'send_reminder' | 'run_scheduled_reminders'
-const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-reminder-cron-secret' }
+const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-reminder-cron-secret' }
 const env = (name: string) => Deno.env.get(name) ?? ''
+const platformKey = (modernName: string, legacyName: string) => {
+  try {
+    const key = JSON.parse(env(modernName)).default
+    if (typeof key === 'string' && key) return key
+  } catch { /* Older projects expose the legacy variable instead. */ }
+  return env(legacyName)
+}
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 const eventText = (event: EventRow) => new Date(event.start_at).toLocaleString('en', { dateStyle: 'full', timeStyle: 'short' })
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!)
@@ -23,7 +30,7 @@ function copy(kind: DeliveryKind, event: EventRow, name: string) {
   const greeting = `<p>Hi ${escapeHtml(name)},</p>`
   const details = `<p><strong>${escapeHtml(event.title)}</strong><br/>${eventText(event)}<br/>${escapeHtml(event.location)}</p>`
   if (kind === 'registration_pending') return { subject: `Request received — ${event.title}`, html: `${greeting}<p>Your registration is waiting for the organizer’s decision.</p>${details}` }
-  if (kind === 'registration_approved') return { subject: `You’re approved — ${event.title}`, html: `${greeting}<p>Your registration has been approved. We’re looking forward to seeing you.</p>${details}` }
+  if (kind === 'registration_approved') return { subject: `Registration confirmed — ${event.title}`, html: `${greeting}<p>You’re registered for <strong>${escapeHtml(event.title)}</strong>. We’re looking forward to seeing you.</p>${details}` }
   if (kind === 'registration_rejected') return { subject: `Registration update — ${event.title}`, html: `${greeting}<p>Unfortunately, the organizer could not approve this registration.</p>${details}` }
   if (kind === 'cancellation') return { subject: `Cancelled — ${event.title}`, html: `${greeting}<p>This event has been cancelled.</p>${details}` }
   if (kind === 'reminder') return { subject: `Reminder — ${event.title}`, html: `${greeting}<p>A quick reminder that this event is coming up soon.</p>${details}` }
@@ -73,7 +80,9 @@ Deno.serve(async (request) => {
   if (request.method !== 'POST') return response({ error: 'Method not allowed' }, 405)
   const body = await request.json().catch(() => ({})) as { action?: Action; eventId?: string; recipientUserIds?: string[]; scheduledAt?: string }
   const action = body.action
-  const url = env('SUPABASE_URL'); const anonKey = env('SUPABASE_ANON_KEY'); const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY')
+  const url = env('SUPABASE_URL')
+  const anonKey = platformKey('SUPABASE_PUBLISHABLE_KEYS', 'SUPABASE_ANON_KEY')
+  const serviceKey = platformKey('SUPABASE_SECRET_KEYS', 'SUPABASE_SERVICE_ROLE_KEY')
   if (!url || !anonKey || !serviceKey || !action) return response({ error: 'Function configuration is incomplete.' }, 500)
   const cronAuthorized = action === 'run_scheduled_reminders' && request.headers.get('x-reminder-cron-secret') === env('REMINDER_CRON_SECRET')
   const authHeader = request.headers.get('Authorization') ?? ''
@@ -91,16 +100,23 @@ Deno.serve(async (request) => {
   }
 
   if (!body.eventId) return response({ error: 'eventId is required.' }, 400)
-  const { data: event, error: eventError } = await admin.from('events').select('*').eq('id', body.eventId).single()
+  // A registration confirmation only needs the caller's public event and own
+  // registration. Using the caller client keeps this path working even when a
+  // project has an older service-role key deployed to its function runtime.
+  const callerManagedDelivery = action === 'registration_submitted' || action === 'send_reminder'
+  const eventClient = callerManagedDelivery ? caller : admin
+  const { data: event, error: eventError } = await eventClient.from('events').select('*').eq('id', body.eventId).single()
   if (eventError || !event) return response({ error: 'Event not found.' }, 404)
   const typedEvent = event as EventRow
 
   if (action === 'registration_submitted') {
-    const { data: registration } = await admin.from('event_registrations').select('*').eq('event_id', typedEvent.id).eq('user_id', user!.id).single()
+    const { data: registration } = await caller.from('event_registrations').select('*').eq('event_id', typedEvent.id).eq('user_id', user!.id).single()
     if (!registration) return response({ error: 'Registration not found.' }, 404)
     const typedRegistration = registration as RegistrationRow
     const kind: DeliveryKind = typedRegistration.registration_status === 'approved' ? 'registration_approved' : 'registration_pending'
-    return response(await deliver(admin, typedEvent, typedRegistration, kind, `${kind}:${typedEvent.id}:${typedRegistration.user_id}:${typedRegistration.updated_at}`))
+    const message = copy(kind, typedEvent, typedRegistration.attendee_name || 'there')
+    await sendBrevo(typedRegistration.attendee_email, typedRegistration.attendee_name || 'there', message.subject, message.html)
+    return response({ sent: true })
   }
 
   if (typedEvent.owner_id !== user!.id) return response({ error: 'Forbidden' }, 403)
@@ -115,12 +131,17 @@ Deno.serve(async (request) => {
     return response(await deliver(admin, typedEvent, typedRegistration, kind, `${kind}:${typedEvent.id}:${typedRegistration.user_id}:${typedRegistration.updated_at}`))
   }
   if (action === 'send_reminder') {
-    const audience = body.recipientUserIds?.length ? 'selected' : 'approved_all'
-    const scheduledAt = body.scheduledAt && !Number.isNaN(Date.parse(body.scheduledAt)) ? new Date(body.scheduledAt).toISOString() : new Date().toISOString()
-    const { data: campaign, error } = await admin.from('email_campaigns').insert({ event_id: typedEvent.id, organizer_id: user!.id, kind: 'reminder', audience, selected_user_ids: body.recipientUserIds ?? [], scheduled_at: scheduledAt, status: 'scheduled' }).select().single()
-    if (error || !campaign) return response({ error: error?.message ?? 'Could not create reminder.' }, 500)
-    if (Date.parse(scheduledAt) > Date.now()) return response({ scheduled: true, campaignId: campaign.id })
-    return response({ sent: await sendCampaign(admin, campaign as { id: string; event_id: string; organizer_id: string; audience: 'approved_all' | 'selected'; selected_user_ids: string[] }) })
+    let query = caller.from('event_registrations').select('*').eq('event_id', typedEvent.id).eq('registration_status', 'approved')
+    if (body.recipientUserIds?.length) query = query.in('user_id', body.recipientUserIds)
+    const { data: registrations, error } = await query
+    if (error) return response({ error: error.message }, 500)
+    let sent = 0
+    for (const registration of (registrations ?? []) as RegistrationRow[]) {
+      const message = copy('reminder', typedEvent, registration.attendee_name || 'there')
+      await sendBrevo(registration.attendee_email, registration.attendee_name || 'there', message.subject, message.html)
+      sent++
+    }
+    return response({ sent })
   }
 
   const { data: registrations } = await admin.from('event_registrations').select('*').eq('event_id', typedEvent.id).eq('registration_status', 'approved')

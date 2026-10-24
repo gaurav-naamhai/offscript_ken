@@ -4,23 +4,23 @@
    Design Tokens & Editorial Palette
    ========================================================================== */
 :root {
-  --bg-page: #F7F3EE;
-  --surface: #FFFCF8;
-  --surface-hover: #F8F4EE;
-  --surface-alt: #F2ECE5;
-  --ink: #242024;
-  --muted: #6D6268;
-  --muted-light: #8E8289;
-  --border: #E3DAD4;
-  --border-subtle: #EDE5DF;
-  --border-strong: #CDC0B8;
+  --bg-page: #171218;
+  --surface: #231b23;
+  --surface-hover: #2d222c;
+  --surface-alt: #2a2029;
+  --ink: #f7eff4;
+  --muted: #c5b6c0;
+  --muted-light: #9e8f99;
+  --border: #443640;
+  --border-subtle: #332832;
+  --border-strong: #65515f;
 
   /* Brand and Buttons */
-  --brand: #4B2441;
-  --brand-hover: #37182F;
-  --brand-active: #2D1326;
-  --brand-soft: #F2E7EE;
-  --brand-light: #FBF4F8;
+  --brand: #e2a7cf;
+  --brand-hover: #efbddc;
+  --brand-active: #c58aaa;
+  --brand-soft: #3e2638;
+  --brand-light: #2d202b;
 
   /* Terracotta Highlight - Used Sparingly */
   --terracotta: #9B5C44;
@@ -56,10 +56,16 @@
   --radius-full: 9999px;
 
   /* Elevation Shadows */
-  --shadow-subtle: 0 4px 16px rgba(36, 32, 36, 0.04);
-  --shadow-card: 0 4px 20px rgba(36, 32, 36, 0.05);
-  --shadow-hover: 0 12px 28px rgba(75, 36, 65, 0.09);
-  --shadow-modal: 0 20px 48px rgba(36, 32, 36, 0.14);
+  --shadow-subtle: 0 4px 16px rgba(0, 0, 0, 0.22);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.26);
+  --shadow-hover: 0 12px 28px rgba(0, 0, 0, 0.34);
+  --shadow-modal: 0 20px 48px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme='light'] {
+  --bg-page: #F7F3EE; --surface: #FFFCF8; --surface-hover: #F8F4EE; --surface-alt: #F2ECE5; --ink: #242024; --muted: #6D6268; --muted-light: #8E8289; --border: #E3DAD4; --border-subtle: #EDE5DF; --border-strong: #CDC0B8;
+  --brand: #4B2441; --brand-hover: #37182F; --brand-active: #2D1326; --brand-soft: #F2E7EE; --brand-light: #FBF4F8;
+  --shadow-subtle: 0 4px 16px rgba(36, 32, 36, 0.04); --shadow-card: 0 4px 20px rgba(36, 32, 36, 0.05); --shadow-hover: 0 12px 28px rgba(75, 36, 65, 0.09); --shadow-modal: 0 20px 48px rgba(36, 32, 36, 0.14);
 }
 
 /* Base Styles & Resets */
@@ -244,6 +250,39 @@ h1, h2, h3, .serif-heading {
   align-items: center;
   gap: 14px;
 }
+
+.session-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 6px 10px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+.theme-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 8px 11px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 650;
+}
+.theme-control:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+
+:root:not([data-theme='light']) .attendee-top-nav,
+:root:not([data-theme='light']) .mobile-sticky-action-bar { background: rgba(35, 27, 35, 0.94); }
+
+.session-control:hover { color: var(--danger); background: var(--status-cancelled-bg); border-color: var(--status-cancelled-border); }
 
 .attendee-workspace-content {
   flex: 1;

@@ -183,13 +183,28 @@ create policy "read own or managed registrations" on public.event_registrations 
 );
 create policy "apply to open events" on public.event_registrations for insert to authenticated with check (
   user_id = (select auth.uid()) and exists (
-    select 1 from public.events e where e.id = event_id and e.status = 'published' and e.registration in ('open', 'approval')
+    select 1 from public.events e where e.id = event_id and e.status = 'published' and (
+      (e.registration = 'open' and registration_status = 'approved') or
+      (e.registration = 'approval' and registration_status = 'pending')
+    )
   )
 );
 create policy "organizers manage registrations" on public.event_registrations for update to authenticated using (
   exists (select 1 from public.events e where e.id = event_id and e.owner_id = (select auth.uid()))
 ) with check (
   exists (select 1 from public.events e where e.id = event_id and e.owner_id = (select auth.uid()))
+);
+
+drop policy if exists "attendees manage own registration" on public.event_registrations;
+create policy "attendees manage own registration" on public.event_registrations for update to authenticated using (
+  user_id = (select auth.uid())
+) with check (
+  user_id = (select auth.uid()) and exists (
+    select 1 from public.events e where e.id = event_id and (
+      (e.registration = 'open' and registration_status in ('approved', 'cancelled')) or
+      (e.registration = 'approval' and registration_status in ('pending', 'cancelled'))
+    )
+  )
 );
 
 -- Public poster images can be read by signed-in visitors. Uploads stay under the owner's UID folder.
