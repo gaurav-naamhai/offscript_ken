@@ -1,6 +1,12 @@
 # Gather
 
-A minimal React + TypeScript + Vite event workspace. User and Organizer each have Happening Events, My Events, and Calendar sections. These intentionally contain no event data, calendar data, authentication, forms, or API integrations yet.
+An event workspace built with React, TypeScript, and Vite. It supports separate User and Organizer workflows without requiring sign-in during this prototype stage.
+
+## Included workflows
+
+- Organizers can create drafts, edit event information, publish or cancel events, choose public/private visibility, set open/approval/closed registration, set capacity, manage guest requests, check in guests, and export the active guest list as CSV.
+- Users can browse public events, search and filter by category, open event details, save an event, RSVP or request approval, see their plans in My Events and Calendar, and download an `.ics` calendar entry.
+- Event, saved-event, and guest state persists in this browser using local storage, so the full flow can be tried without credentials. Supabase will replace this local data layer next.
 
 ## Run locally
 
@@ -13,32 +19,18 @@ npm run dev
 
 ## Structure
 
-- `src/App.tsx`: screen composition and hash navigation subscription.
+- `src/App.tsx`: screen composition and hash-navigation subscription.
 - `src/components/AppShell.tsx`: navigation, User / Organizer switch, and responsive shell.
-- `src/components/EmptySection.tsx`: empty feature area; replace or extend this with future feature screens.
-- `src/features/workspace.ts`: typed routes, section definitions, and mode-specific text.
+- `src/components/EventCard.tsx` and `src/components/EventForm.tsx`: reusable discovery cards and organizer event editor.
+- `src/features/events.tsx`: local event data provider and actions, ready to be swapped for a Supabase repository.
+- `src/features/event-utils.ts`: date, RSVP, capacity, and guest-list helpers.
+- `src/features/workspace.ts`: typed routes and section definitions.
 - `src/index.css`: shared design tokens and responsive styling.
 
 Direct links such as `/#/organizer/calendar` work on static hosting. Browser back and forward work across sections. Switching modes preserves the current section. The mode switch is navigation only, not an authorization boundary.
 
-## Design
+## Design and verification
 
-The primary screen follows `design/gather-concept.png`, generated with the built-in image tool. The brief: an airy event app with a white sidebar, cool gray workspace, forest-green selected controls, Manrope typography, User / Organizer switch, and three intentionally empty sections. All UI text, icons, and controls are implemented in React; the concept image is documentation only.
+The interface follows `design/gather-concept.png`: a white sidebar, cool gray workspace, forest-green selected controls, Manrope typography, and an airy layout. All UI text, icons, and controls are implemented in React; the concept image is documentation only.
 
-Tokens: background `#f7f8fa`, sidebar `#ffffff`, text `#202524`, accent `#1d5542`, selected navigation `#edf5f1`. Outline icons use Lucide. Mobile replaces the desktop rail with horizontal section navigation. Reduced-motion preferences and keyboard focus are supported.
-
-## Verification
-
-The frontend design skill shaped the image concept and implementation. The concept and final desktop/mobile captures were inspected with `view_image`. Desktop was checked at the concept's native 1505 × 1045 dimensions; mobile at 390 × 844. All six views, switching mode while keeping the current section, and browser back/forward were checked in the built-in browser. No browser errors or horizontal overflow were observed. Final screenshots use Playwright with installed Chrome because the built-in browser's display scaling clipped screenshot captures.
-
-| Comparison | Concept and final render review |
-| --- | --- |
-| Layout | Sidebar width, open workspace, heading alignment, and mode switch follow the concept. |
-| Typography | Heading scale was enlarged after comparison; Manrope provides consistent text and control styling. |
-| Palette | White sidebar, cool gray workspace, and green selected states preserved. |
-| Spacing | Empty-state circle enlarged and moved up to match the concept. |
-| Icons | Outline calendar, bookmark, and compass metaphors preserved with Lucide. |
-| Copy | Primary visible copy matches the concept; organizer and other section copy intentionally varies by context. |
-| Responsive behavior | Mobile intentionally uses horizontal navigation and smaller text. |
-
-No material visual mismatches remain against the selected design. The interface was faithfully verified against the concept, with font/icon geometry, flat rather than raster-textured surfaces, mode-specific copy, and mobile navigation as intentional implementation adaptations. Final previews are `design/gather-desktop.png` and `design/gather-mobile.png`.
+The desktop and mobile shell, plus the end-to-end event flow, were checked in the browser. The tested path was: create and publish an event, discover it as a user, save and RSVP, verify My Events and Calendar, then check in the guest as an organizer. Build and lint both pass. Final previews are `design/gather-desktop.png`, `design/gather-mobile.png`, and `design/gather-features.png`.
