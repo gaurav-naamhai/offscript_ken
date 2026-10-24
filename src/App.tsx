@@ -5,6 +5,7 @@ import {
   Check,
   Download,
   FileDown,
+  Mail,
   MapPin,
   Plus,
   Search,
@@ -18,6 +19,7 @@ import {
   Share2,
   Ticket,
 } from 'lucide-react'
+import { sendOrganizerReminder } from './features/reminder-adapter'
 import { AppShell } from './components/AppShell'
 import { EventCard } from './components/EventCard'
 import { EventForm } from './components/EventForm'
@@ -482,6 +484,29 @@ function EventDetail({
   const [attendeeEmail, setAttendeeEmail] = useState('')
   const [rsvpFeedback, setRsvpFeedback] = useState<string | null>(null)
   const [shareFeedback, setShareFeedback] = useState<string | null>(null)
+  const [sendingReminder, setSendingReminder] = useState(false)
+  const [reminderFeedback, setReminderFeedback] = useState<string | null>(null)
+
+  const handleSendReminder = async () => {
+    if (isSample) {
+      setReminderFeedback('Preview event — email reminders are disabled for preview events.')
+      return
+    }
+    setSendingReminder(true)
+    setReminderFeedback(null)
+    try {
+      const res = await sendOrganizerReminder(event.id)
+      if (res.success) {
+        setReminderFeedback('Reminder sent to registered attendees!')
+      } else {
+        setReminderFeedback(res.error || 'Failed to send reminder.')
+      }
+    } catch (err) {
+      setReminderFeedback(err instanceof Error ? err.message : 'Error sending reminder.')
+    } finally {
+      setSendingReminder(false)
+    }
+  }
 
   const activeGuestSource = isSample ? previewGuests : guests
   const currentStatus = guestStatus(activeGuestSource, event.id, isSample ? 'local-preview-guest' : userId)
@@ -783,6 +808,17 @@ function EventDetail({
                   <FileDown size={17} aria-hidden="true" />
                   <span>Guest CSV</span>
                 </button>
+                {event.status === 'published' && (
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    disabled={sendingReminder || isSample}
+                    onClick={handleSendReminder}
+                  >
+                    <Mail size={17} aria-hidden="true" />
+                    <span>{sendingReminder ? 'Sending reminder...' : 'Send reminder'}</span>
+                  </button>
+                )}
                 {event.status === 'draft' && (
                   <button
                     type="button"
@@ -804,6 +840,15 @@ function EventDetail({
                   >
                     Cancel gathering
                   </button>
+                )}
+                {reminderFeedback && (
+                  <p
+                    className="reminder-feedback"
+                    role="status"
+                    style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '4px' }}
+                  >
+                    {reminderFeedback}
+                  </p>
                 )}
               </div>
             ) : (

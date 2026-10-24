@@ -10,12 +10,15 @@ An event workspace built with React, TypeScript, and Vite. It supports separate 
 
 ## Run locally
 
+Requires Node.js `>=20.0.0`.
+
 ```sh
+cp .env.example .env.local
 npm install
 npm run dev
 ```
 
-`npm run build` creates the production site in `dist`. `npm run lint` runs the linter. `npm test` runs the unit and integration test suite.
+`npm run build` creates the production site in `dist`. `npm run typecheck` runs type-checking. `npm run lint` runs the linter. `npm test` runs the unit and integration test suite.
 
 ## Transactional email
 

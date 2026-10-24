@@ -114,7 +114,8 @@ export async function searchLocationsGeoapify(
     return { results: [], isApiKeyMissing: false }
   }
 
-  const apiKey = import.meta.env.VITE_GEOAPIFY_API_KEY?.trim()
+  const rawKey = import.meta.env.VITE_GEOAPIFY_API_KEY?.trim()
+  const apiKey = rawKey && rawKey !== 'your_geoapify_api_key_here' && !rawKey.startsWith('your_') ? rawKey : undefined
 
   // Graceful fallback when API key is not yet set in environment
   if (!apiKey) {
